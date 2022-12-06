@@ -8,9 +8,9 @@ See LICENSE.txt in the root of the source distribution for license info.
 This project contains a collection of standalone test programs
 that exercise the Hip-for-Intel (H4I) libraries.  This collection
 does not obviate the test suites internal to each library's project,
-but are intended to provide confidence that client programs can
+but are intended to demonstrate that client programs can
 build, link, and run against the installed library, as opposed
-to the internal test suite which uses the not-yet-installed files.
+to the internal test suite which uses built but not-yet-installed files.
 
 # Configure, Build, and Install
 
