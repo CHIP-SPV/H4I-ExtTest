@@ -1,4 +1,4 @@
-// Copyright 2021 UT-Battelle
+// Copyright 2021-2022 UT-Battelle
 // See LICENSE.txt in the root of the source distribution for license info.
 #ifndef TEST_COMMAND_LINE_H
 #define TEST_COMMAND_LINE_H

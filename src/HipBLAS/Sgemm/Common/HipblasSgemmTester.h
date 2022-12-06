@@ -1,4 +1,4 @@
-// Copyright 2021 UT-Battelle
+// Copyright 2021-2022 UT-Battelle
 // See LICENSE.txt in the root of the source distribution for license info.
 #ifndef HIPBLAS_SGEMM_TESTER_H
 #define HIPBLAS_SGEMM_TESTER_H
