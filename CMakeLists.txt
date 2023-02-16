@@ -34,6 +34,10 @@ find_package(HIP REQUIRED)
 # provided with ROCm or our H4I implementations.
 option(H4I_USE_ROCM_LIBS "Whether to use ROCm-installed libraries (e.g., ROCm's hipBLAS)" OFF)
 
+# Allow user to exclude half-precision tests.
+# Experience shows these seem to be troublesome with CHIP-SPV and the H4I-HipBLAS libraries.
+option(TEST_HALF_PRECISION "Whether to include half-precision tests" OFF)
+
 # Our standalone tests use some Boost libraries.
 find_package(Boost REQUIRED
     COMPONENTS program_options)

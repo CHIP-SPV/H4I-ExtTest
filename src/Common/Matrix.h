@@ -7,7 +7,12 @@
 #include <vector>
 #include <cstring>  // for memset
 #include "hip/hip_runtime.h"
+
+#include "src/Common/ExtTestConfig.h"
+#if defined(TEST_HALF_PRECISION)
 #include "hip/hip_fp16.h"
+#endif // defined(TEST_HALF_PRECISION)
+
 #include "HipstarException.h"
 
 // A Matrix in CPU and GPU memory.
@@ -108,12 +113,14 @@ public:
 };
 
 
+#if defined(TEST_HALF_PRECISION)
 inline
 float
 ToFloat(const __half& h)
 {
     return __half2float(h);
 }
+#endif // defined(TEST_HALF_PRECISION)
 
 inline
 float
