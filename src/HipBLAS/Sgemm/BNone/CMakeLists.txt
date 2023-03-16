@@ -18,3 +18,5 @@ target_link_libraries(sgemm_hb_none
         ${HIPBLAS_LIBS}
     )
 
+install(TARGETS sgemm_hb_none
+        RUNTIME)
