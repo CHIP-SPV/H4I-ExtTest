@@ -8,7 +8,8 @@ target_include_directories(sgemm_hb_none
     PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}/../Common
         ${CMAKE_CURRENT_SOURCE_DIR}/../../Common
-        ${CMAKE_CURRENT_SOURCE_DIR}/../../../Common)
+        ${CMAKE_CURRENT_SOURCE_DIR}/../../../Common
+        ${CMAKE_BINARY_DIR})
 target_link_libraries(sgemm_hb_none
     PRIVATE
         ExtTestConfig
@@ -17,3 +18,5 @@ target_link_libraries(sgemm_hb_none
         ${HIPBLAS_LIBS}
     )
 
+install(TARGETS sgemm_hb_none
+        RUNTIME)

@@ -2,12 +2,11 @@
 # See LICENSE.txt in the root of the source distribution for license info.
 
 # All tests under this director use HipBLAS.
+find_package(hipblas REQUIRED)
 if(NOT H4I_USE_ROCM_LIBS)
-    find_package(HipBLAS)
-    set(HIPBLAS_LIBS H4I::HipBLAS)
+    set(HIPBLAS_LIBS H4I::hipblas)
 else()
     # We are using the ROCm hipblas.
-    find_package(hipblas REQUIRED)
     set(HIPBLAS_LIBS roc::hipblas)
 endif()
 
