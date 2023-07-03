@@ -1,7 +1,8 @@
 // Copyright 2021-2023 UT-Battelle
 // See LICENSE.txt in the root of the source distribution for license info.
-#ifndef TEST_HIPSTREAM_H
-#define TEST_HIPSTREAM_H
+#pragma once
+
+#include <iostream>
 
 #include "hip/hip_runtime_api.h"
 #include "HipstarException.h"
@@ -14,17 +15,16 @@ private:
 public:
     HipStream(void)
     {
-        hipStreamCreate(&handle);        
+        HIPCHECK(hipStreamCreate(&handle));
     }
 
     ~HipStream(void)
     {
-        CHECK(hipStreamDestroy(handle));
+        HIPCHECK(hipStreamDestroy(handle));
     }
 
     hipStream_t GetHandle(void) const   { return handle; }
 
-    void Synchronize(void) const  { CHECK(hipStreamSynchronize(handle)); }
+    void Synchronize(void) const  { HIPCHECK(hipStreamSynchronize(handle)); }
 };
 
-#endif // TEST_HIPSTREAM_H

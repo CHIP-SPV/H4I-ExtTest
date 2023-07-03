@@ -31,7 +31,7 @@ using HipException = HipstarException<hipError_t>;
 
 inline
 void
-CHECK(hipError_t code)
+HIPCHECK(hipError_t code)
 {
     if(code != hipSuccess)
     {

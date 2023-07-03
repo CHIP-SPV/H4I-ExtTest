@@ -9,7 +9,7 @@ using HipblasException = HipstarException<hipblasStatus_t>;
 
 inline
 void
-CHECK(hipblasStatus_t code)
+HBCHECK(hipblasStatus_t code)
 {
     if(code != HIPBLAS_STATUS_SUCCESS)
     {

@@ -8,7 +8,7 @@
 #include <cstring>  // for memset
 #include "hip/hip_runtime.h"
 
-#include "src/Common/ExtTestConfig.h"
+#include "ExtTestConfig.h"
 #if defined(TEST_HALF_PRECISION)
 #include "hip/hip_fp16.h"
 #endif // defined(TEST_HALF_PRECISION)
@@ -37,23 +37,23 @@ public:
         hostData(nullptr),
         devData(nullptr)
     {
-        CHECK(hipHostMalloc(&hostData, GetSize()));
+        HIPCHECK(hipHostMalloc(&hostData, GetSize()));
         memset(hostData, 0, GetSize());
 
-        CHECK(hipMalloc(&devData, GetSize()));
-        CHECK(hipMemset(devData, 0, GetSize()));
+        HIPCHECK(hipMalloc(&devData, GetSize()));
+        HIPCHECK(hipMemset(devData, 0, GetSize()));
     }
 
     ~Matrix(void)
     {
         if(hostData != nullptr)
         {
-            CHECK(hipHostFree(hostData));
+            HIPCHECK(hipHostFree(hostData));
             hostData = nullptr;
         }
         if(devData != nullptr)
         {
-            CHECK(hipFree(devData));
+            HIPCHECK(hipFree(devData));
             devData = nullptr;
         }
     }
@@ -79,7 +79,7 @@ public:
 
     void CopyHostToDevice(void)
     {
-        CHECK(hipMemcpy(devData,
+        HIPCHECK(hipMemcpy(devData,
                         hostData,
                         GetSize(),
                         hipMemcpyHostToDevice));
@@ -87,7 +87,7 @@ public:
 
     void CopyHostToDeviceAsync(const HipStream& stream)
     {
-        CHECK(hipMemcpyAsync(devData,
+        HIPCHECK(hipMemcpyAsync(devData,
                             hostData,
                             GetSize(),
                             hipMemcpyHostToDevice,
@@ -96,7 +96,7 @@ public:
 
     void CopyDeviceToHost(void)
     {
-        CHECK(hipMemcpy(hostData,
+        HIPCHECK(hipMemcpy(hostData,
                         devData,
                         GetSize(),
                         hipMemcpyDeviceToHost));
@@ -104,7 +104,7 @@ public:
 
     void CopyDeviceToHostAsync(const HipStream& stream)
     {
-        CHECK(hipMemcpyAsync(hostData,
+        HIPCHECK(hipMemcpyAsync(hostData,
                             devData,
                             GetSize(),
                             hipMemcpyDeviceToHost,
@@ -137,7 +137,7 @@ operator<<(std::ostream& os, const Matrix<T>& m)
 {
     std::vector<T> hdata(m.GetNumItems());
     auto matrixSize = m.GetSize();
-    CHECK(hipMemcpy(hdata.data(), m.GetDeviceData(), matrixSize, hipMemcpyDeviceToHost));
+    HIPCHECK(hipMemcpy(hdata.data(), m.GetDeviceData(), matrixSize, hipMemcpyDeviceToHost));
     os << "dims: " << m.GetNumRows() << 'x' << m.GetNumCols()
         << ", nItems: " << m.GetNumItems()
         << ", size: " << matrixSize

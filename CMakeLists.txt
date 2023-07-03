@@ -42,5 +42,26 @@ option(TEST_HALF_PRECISION "Whether to include half-precision tests" OFF)
 find_package(Boost REQUIRED
     COMPONENTS program_options)
 
-add_subdirectory(src)
+# We use CTest support for driving tests.
+include(CTest)
+
+# We use Catch2 to implement (many? most? all?) tests.
+find_package(Catch2 3)
+if(Catch2_FOUND)
+    message(STATUS "Catch2 found at ${Catch2_DIR}")
+else()
+    # We didn't find Catch2.
+    # Rather than fail, download and build it.
+    include(FetchContent)
+    FetchContent_Declare(Catch2
+        GIT_REPOSITORY https://github.com/catchorg/Catch2.git
+        GIT_TAG v3.3.2
+    )
+    FetchContent_MakeAvailable(Catch2)
+endif()
+include(Catch)
+
+# We don't bother testing the BUILD_TESTING variable,
+# since the purpose of this repository is to do tests.
+add_subdirectory(tests)
 
