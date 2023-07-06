@@ -13,14 +13,21 @@ private:
     hipStream_t handle;
 
 public:
-    HipStream(void)
+    HipStream(bool createCustomStream = false)
+      : handle(nullptr)
     {
-        HIPCHECK(hipStreamCreate(&handle));
+        if(createCustomStream)
+        {
+            HIPCHECK(hipStreamCreate(&handle));
+        }
     }
 
     ~HipStream(void)
     {
-        HIPCHECK(hipStreamDestroy(handle));
+        if(handle != nullptr)
+        {
+            HIPCHECK(hipStreamDestroy(handle));
+        }
     }
 
     hipStream_t GetHandle(void) const   { return handle; }

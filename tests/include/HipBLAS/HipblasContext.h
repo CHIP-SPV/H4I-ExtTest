@@ -12,11 +12,22 @@ private:
     hipblasHandle_t handle;
 
 public:
+    HipblasContext(void)
+    {
+        HBCHECK(hipblasCreate(&handle));
+
+        // Use the default HIP stream.
+        // (I.e., don't call hipblasSetStream.)
+    }
+
     HipblasContext(const HipStream& stream)
     {
         HBCHECK(hipblasCreate(&handle));
         auto h = stream.GetHandle();
-        HBCHECK(hipblasSetStream(handle, stream.GetHandle()));
+        if(h != nullptr)
+        {
+            HBCHECK(hipblasSetStream(handle, stream.GetHandle()));
+        }
     }
 
     ~HipblasContext(void)
