@@ -13,5 +13,12 @@ target_link_libraries(blas_level3
     PUBLIC
         ${HIPBLAS_LIBS}
         Catch2::Catch2WithMain)
-catch_discover_tests(blas_level3)        
+if(BUILD_TESTING)
+    # Register supported tests with CTest.
+    catch_discover_tests(blas_level3)
+endif()
+
+# Specify how (and where) to install our targets.
+install(TARGETS blas_level3
+    RUNTIME)
 
