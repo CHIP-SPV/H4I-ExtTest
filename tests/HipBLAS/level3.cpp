@@ -28,14 +28,14 @@ GemmTestSection(std::string sectionName, HipStream& hipStream)
             { "trans B", true }
         };
 
-        for(auto& x : subsectionInfo)
+        for(const auto& currSubsectionInfo : subsectionInfo)
         {
-            SECTION(x.first)
+            SECTION(currSubsectionInfo.first)
             {
                 using TesterType = GemmTester<ScalarType>;
 
                 // Build a test driver.
-                TesterType tester(m, n, k, alpha, beta, x.second, hipStream);
+                TesterType tester(m, n, k, alpha, beta, currSubsectionInfo.second, hipStream);
 
                 // Do the operation.
                 typename TesterType::ResultType result(m, k);
@@ -56,9 +56,22 @@ GemmTestSection(std::string sectionName, HipStream& hipStream)
 
 TEST_CASE("GEMM", "[BLAS][BLAS3]")
 {
-    HipStream hipStream;
+    std::vector<std::pair<std::string, bool>> subsectionInfo {
+        { "Default stream", false },
+#if READY
+        { "Custom stream", true }
+#endif // READY
+    };
 
-    GemmTestSection<float>("sgemm", hipStream);
-    GemmTestSection<double>("dgemm", hipStream);
+    for(const auto& currSubsectionInfo : subsectionInfo)
+    {
+        SECTION(currSubsectionInfo.first)
+        {
+            HipStream hipStream(currSubsectionInfo.second);
+
+            GemmTestSection<float>("sgemm", hipStream);
+            GemmTestSection<double>("dgemm", hipStream);
+        }
+    }
 }
 
