@@ -58,9 +58,7 @@ TEST_CASE("GEMM", "[BLAS][BLAS3]")
 {
     std::vector<std::pair<std::string, bool>> subsectionInfo {
         { "Default stream", false },
-#if READY
         { "Custom stream", true }
-#endif // READY
     };
 
     for(const auto& currSubsectionInfo : subsectionInfo)
