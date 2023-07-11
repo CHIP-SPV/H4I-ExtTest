@@ -1,6 +1,7 @@
 // Copyright 2021-2023 UT-Battelle
 // See LICENSE.txt in the root of the source distribution for license info.
 #include <catch2/catch_test_macros.hpp>
+#include <catch2/generators/catch_generators.hpp>
 
 #include <vector>
 #include <tuple>
@@ -13,6 +14,8 @@ template<typename ScalarType>
 void
 GemmTestSection(std::string sectionName, HipStream& hipStream)
 {
+    using TesterType = GemmTester<ScalarType>;
+
     SECTION(sectionName)
     {
         // Specify the problem.
@@ -25,53 +28,33 @@ GemmTestSection(std::string sectionName, HipStream& hipStream)
         ScalarType alpha = 0.5;
         ScalarType beta = 0.75;
 
-        std::vector<std::pair<std::string, bool>> subsectionInfo {
-            { "no trans B", false },
-            { "trans B", true }
-        };
+        auto transB = GENERATE(false, true);
 
-        for(const auto& currSubsectionInfo : subsectionInfo)
+        // Build a test driver.
+        TesterType tester(m, n, k, alpha, beta, transB, hipStream);
+
+        // Do the operation.
+        typename TesterType::ResultType result(m, k);
+        auto opStatus = tester.DoOperation(result);
+        hipStream.Synchronize();
+        REQUIRE(opStatus == HIPBLAS_STATUS_SUCCESS);
+
+        // Verify the result.
+        if(opStatus == HIPBLAS_STATUS_SUCCESS)
         {
-            SECTION(currSubsectionInfo.first)
-            {
-                using TesterType = GemmTester<ScalarType>;
-
-                // Build a test driver.
-                TesterType tester(m, n, k, alpha, beta, currSubsectionInfo.second, hipStream);
-
-                // Do the operation.
-                typename TesterType::ResultType result(m, k);
-                auto opStatus = tester.DoOperation(result);
-                hipStream.Synchronize();
-                REQUIRE(opStatus == HIPBLAS_STATUS_SUCCESS);
-
-                // Verify the result.
-                if(opStatus == HIPBLAS_STATUS_SUCCESS)
-                {
-                    auto nMismatches = tester.Check(result);
-                    REQUIRE(nMismatches == 0);
-                }
-            }
+            auto nMismatches = tester.Check(result);
+            REQUIRE(nMismatches == 0);
         }
     }
 }
 
 TEST_CASE("GEMM", "[BLAS][BLAS3]")
 {
-    std::vector<std::pair<std::string, bool>> subsectionInfo {
-        { "Default stream", false },
-        { "Custom stream", true }
-    };
+    auto createCustomStream = GENERATE(false, true);
 
-    for(const auto& currSubsectionInfo : subsectionInfo)
-    {
-        SECTION(currSubsectionInfo.first)
-        {
-            HipStream hipStream(currSubsectionInfo.second);
+    HipStream hipStream(createCustomStream);
 
-            GemmTestSection<float>("sgemm", hipStream);
-            GemmTestSection<double>("dgemm", hipStream);
-        }
-    }
+    GemmTestSection<float>("sgemm", hipStream);
+    GemmTestSection<double>("dgemm", hipStream);
 }
 
