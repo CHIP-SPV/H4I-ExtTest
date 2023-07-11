@@ -1,7 +1,7 @@
 // Copyright 2021-2023 UT-Battelle
 // See LICENSE.txt in the root of the source distribution for license info.
 #include <catch2/catch_test_macros.hpp>
-#include <catch2/generators/catch_generators.hpp>
+#include <catch2/generators/catch_generators_all.hpp>
 
 #include <vector>
 #include <tuple>
@@ -22,27 +22,27 @@ GemmTestSection(std::string sectionName, HipStream& hipStream)
         // A: m x k
         // B: k x n
         // C: m x n
-        int m = 100;
-        int n = 50;
-        int k = 150;
-        ScalarType alpha = 0.5;
-        ScalarType beta = 0.75;
-
+        int m = GENERATE(take(1, random(50, 150)));
+        int n = GENERATE(take(1, random(50, 150)));
+        int k = GENERATE(take(1, random(50, 150)));
+        ScalarType alpha = 0.5; GENERATE(take(1, random(-1.0, 1.0)));
+        ScalarType beta = 0.75; GENERATE(take(1, random(-2.5, 2.5)));
         auto transB = GENERATE(false, true);
 
         // Build a test driver.
         TesterType tester(m, n, k, alpha, beta, transB, hipStream);
 
         // Do the operation.
-        typename TesterType::ResultType result(m, k);
-        auto opStatus = tester.DoOperation(result);
+        auto opStatus = tester.DoOperation();
         hipStream.Synchronize();
         REQUIRE(opStatus == HIPBLAS_STATUS_SUCCESS);
 
         // Verify the result.
         if(opStatus == HIPBLAS_STATUS_SUCCESS)
         {
-            auto nMismatches = tester.Check(result);
+            ScalarType relErrTolerance = 0.0001;
+
+            auto nMismatches = tester.Check(relErrTolerance);
             REQUIRE(nMismatches == 0);
         }
     }

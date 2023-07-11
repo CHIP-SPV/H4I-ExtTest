@@ -16,6 +16,7 @@ class GemmTester
 {
 public:
     using ResultType = Matrix<ScalarType>;
+    using OpStatusType = hipblasStatus_t;
 
 private:
     // Our matrices.
@@ -88,6 +89,15 @@ private:
         assert(false);
     }
 
+    // Compute relative error of computed value compared to expected value.
+    // NB: this is not *quite* the true relative error.  If the expected value
+    // is 0, we return absolute error.
+    static ScalarType RelativeError(ScalarType expVal, ScalarType compVal)
+    {
+        auto delta = compVal - expVal;
+        return std::abs((expVal != 0) ? (delta / expVal) : delta);
+    }
+
 public:
     GemmTester(int _m,
                 int _n,
@@ -108,7 +118,7 @@ public:
     }
 
 
-    hipblasStatus_t DoOperation(ResultType& result)
+    OpStatusType DoOperation(void)
     {
         HipblasContext blasContext(hipStream);
 
@@ -127,7 +137,7 @@ public:
 
         // This assumes column major ordering (the use of nRows for leading dimension).
         // Use of nRows does not differ depending on whether B is transposed.
-        auto ret = CallGemm(blasContext.GetHandle(),
+        auto opStatus = CallGemm(blasContext.GetHandle(),
                             HIPBLAS_OP_N,
                             transB ? HIPBLAS_OP_T : HIPBLAS_OP_N,
                             A.GetNumRows(),
@@ -146,28 +156,47 @@ public:
         // Read computed result from device to host.
         C.CopyDeviceToHostAsync(hipStream);
 
-        return ret;
+        return opStatus;
     }
 
-    uint32_t Check(const ResultType& result) const
+    uint32_t Check(ScalarType relErrTolerance) const
     {
-        // This assumes column major ordering.
         uint32_t nMismatches = 0;
-        for(auto c = 0; c < C.GetNumCols(); ++c)
+
+        auto expNumRows = A.GetNumRows();
+        auto expNumCols = transB ? B.GetNumRows() : B.GetNumCols();
+
+        // Verify result has right shape.
+        // If not, all elements mismatch.
+        if((C.GetNumRows() == expNumRows) and (C.GetNumCols() == expNumCols))
         {
-            for(auto r = 0; r < C.GetNumRows(); ++r)
+            // Result has correct shape.
+            // Check error in each element is below given tolerance.
+            // This assumes column major ordering.
+            for(auto c = 0; c < C.GetNumCols(); ++c)
             {
-                auto expVal = (alpha + beta * r * c);
-                auto compVal = C.El(r, c);
-                if(compVal != expVal)
+                for(auto r = 0; r < C.GetNumRows(); ++r)
                 {
-                    ++nMismatches;
-                    std::cout << "mismatch at: (" << r << ", " << c << ")"
-                        << " expected " << expVal
-                        << ", got " << compVal
-                        << std::endl;
+                    auto expVal = (alpha + beta * r * c);
+                    auto compVal = C.El(r, c);
+                    auto err = RelativeError(expVal, compVal);
+                    if(err > relErrTolerance)
+                    {
+                        ++nMismatches;
+                        std::cout << "mismatch at: (" << r << ", " << c << ")"
+                            << " expected " << expVal
+                            << ", got " << compVal
+                            << ", rerr: " << err
+                            << std::endl;
+                    }
                 }
             }
+        }
+        else
+        {
+            // Result does not have correct shape.
+            // Consider all elements as mismatches.
+            nMismatches = expNumRows * expNumCols;
         }
         return nMismatches;
     }
