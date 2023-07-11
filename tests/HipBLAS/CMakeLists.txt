@@ -1,24 +1,32 @@
+# Copyright 2021-2023 UT-Battelle
+# See LICENSE.txt in the root of the source distribution for license info.
 
-message(STATUS "HIPBLAS_LIBS=${HIPBLAS_LIBS}")
+function(define_hipblas_executable TARGET_NAME TARGET_SOURCES)
 
-# Specify how to build BLAS Level 3 tests.
-add_executable(blas_level3 level3.cpp)
-target_include_directories(blas_level3
-    PUBLIC
-        ${CMAKE_SOURCE_DIR}/tests/include
-        ${CMAKE_BINARY_DIR}/tests/include)
-target_link_libraries(blas_level3
-    PRIVATE
-        ExtTestConfig
-    PUBLIC
-        ${HIPBLAS_LIBS}
-        Catch2::Catch2WithMain)
-if(BUILD_TESTING)
-    # Register supported tests with CTest.
-    catch_discover_tests(blas_level3)
-endif()
+    add_executable(${TARGET_NAME} ${TARGET_SOURCES})
+    target_include_directories(${TARGET_NAME}
+        PUBLIC
+            ${CMAKE_SOURCE_DIR}/tests/include
+            ${CMAKE_BINARY_DIR}/tests/include)
+    target_link_libraries(${TARGET_NAME}
+        PRIVATE
+            ExtTestConfig
+        PUBLIC
+            ${HIPBLAS_LIBS}
+            Catch2::Catch2WithMain)
+    if(BUILD_TESTING)
+        # Register supported tests with CTest.
+        catch_discover_tests(${TARGET_NAME})
+    endif()
+endfunction()
+
+# Specify how to build our test executables.
+define_hipblas_executable(hipblas_level3 level3.cpp)
+define_hipblas_executable(hipblas_handle_mgmt handle_mgmt.cpp)
 
 # Specify how (and where) to install our targets.
-install(TARGETS blas_level3
+install(TARGETS
+            hipblas_level3
+            hipblas_handle_mgmt
     RUNTIME)
 
