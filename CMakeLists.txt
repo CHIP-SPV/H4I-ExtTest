@@ -22,6 +22,10 @@ target_compile_features(ExtTestConfig
     INTERFACE
         cxx_std_17
     )
+target_include_directories(ExtTestConfig
+    INTERFACE
+        ${CMAKE_SOURCE_DIR}/tests/include
+        ${CMAKE_BINARY_DIR}/tests/include)
 
 # We will use HIP in some fashion, no matter which platform
 # we're targeting or what parts of the software we're building.

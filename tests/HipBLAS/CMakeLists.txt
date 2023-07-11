@@ -4,16 +4,13 @@
 function(define_hipblas_executable TARGET_NAME TARGET_SOURCES)
 
     add_executable(${TARGET_NAME} ${TARGET_SOURCES})
-    target_include_directories(${TARGET_NAME}
-        PUBLIC
-            ${CMAKE_SOURCE_DIR}/tests/include
-            ${CMAKE_BINARY_DIR}/tests/include)
     target_link_libraries(${TARGET_NAME}
         PRIVATE
             ExtTestConfig
         PUBLIC
             ${HIPBLAS_LIBS}
             Catch2::Catch2WithMain)
+
     if(BUILD_TESTING)
         # Register supported tests with CTest.
         catch_discover_tests(${TARGET_NAME})
