@@ -2,6 +2,8 @@
 // See LICENSE.txt in the root of the source distribution for license info.
 #pragma once
 
+#include <catch2/catch_test_macros.hpp>
+#include <catch2/matchers/catch_matchers_floating_point.hpp>
 #include "HipBLAS/HipblasTester.h"
 #include "Matrix.h"
 
@@ -131,52 +133,33 @@ public:
                             &beta,
                             C.GetDeviceData(),
                             C.GetNumRows()));
-        this->hipStream.Synchronize();
 
         // Read computed result from device to host.
         C.CopyDeviceToHostAsync(this->hipStream);
+
+        this->hipStream.Synchronize();
     }
 
-    bool Check(ScalarType relErrTolerance) const override
+    void Check(ScalarType relErrTolerance) const override
     {
-        uint32_t nMismatches = 0;
-
         auto expNumRows = A.GetNumRows();
         auto expNumCols = transB ? B.GetNumRows() : B.GetNumCols();
 
         // Verify result has right shape.
-        // If not, all elements mismatch.
-        if((C.GetNumRows() == expNumRows) and (C.GetNumCols() == expNumCols))
+        REQUIRE(C.GetNumRows() == expNumRows);
+        REQUIRE(C.GetNumCols() == (transB ? B.GetNumRows() : B.GetNumCols()));
+
+        // Check error in each element is below given tolerance.
+        // This assumes column major ordering.
+        for(auto c = 0; c < C.GetNumCols(); ++c)
         {
-            // Result has correct shape.
-            // Check error in each element is below given tolerance.
-            // This assumes column major ordering.
-            for(auto c = 0; c < C.GetNumCols(); ++c)
+            for(auto r = 0; r < C.GetNumRows(); ++r)
             {
-                for(auto r = 0; r < C.GetNumRows(); ++r)
-                {
-                    auto expVal = (alpha + beta * r * c);
-                    auto compVal = C.El(r, c);
-                    auto err = HipTester<ScalarType>::RelativeError(expVal, compVal);
-                    if(err > relErrTolerance)
-                    {
-                        ++nMismatches;
-                        std::cout << "mismatch at: (" << r << ", " << c << ")"
-                            << " expected " << expVal
-                            << ", got " << compVal
-                            << ", rerr: " << err
-                            << std::endl;
-                    }
-                }
+                auto expVal = (alpha + beta * r * c);
+                auto compVal = C.El(r, c);
+                REQUIRE_THAT(compVal, Catch::Matchers::WithinRel(expVal, relErrTolerance));
             }
         }
-        else
-        {
-            // Result does not have correct shape.
-            // Consider all elements as mismatches.
-            nMismatches = expNumRows * expNumCols;
-        }
-        return (nMismatches == 0);
     }
 };
 
@@ -250,4 +233,37 @@ GemmTester<double>::CallGemm(hipblasHandle_t handle,
             ldc);
 }
 
+
+// Declare a Catch2 section for a GEMM test.
+template<typename ScalarType>
+void
+GemmTestSection(std::string sectionName, HipStream& hipStream)
+{
+    using TesterType = GemmTester<ScalarType>;
+
+    SECTION(sectionName)
+    {
+        // Specify the problem.
+        // A: m x k
+        // B: k x n
+        // C: m x n
+        int m = GENERATE(take(1, random(50, 150)));
+        int n = GENERATE(take(1, random(50, 150)));
+        int k = GENERATE(take(1, random(50, 150)));
+        ScalarType alpha = 0.5; GENERATE(take(1, random(-1.0, 1.0)));
+        ScalarType beta = 0.75; GENERATE(take(1, random(-2.5, 2.5)));
+        auto transB = GENERATE(false, true);
+
+        // Build a test driver.
+        TesterType tester(m, n, k, alpha, beta, transB, hipStream);
+        REQUIRE_NOTHROW(tester.Init());
+
+        // Do the operation.
+        REQUIRE_NOTHROW(tester.DoOperation());
+
+        // Verify the result.
+        ScalarType relErrTolerance = 0.0001;
+        tester.Check(relErrTolerance);
+    }
+}
 

@@ -34,6 +34,6 @@ public:
 
     virtual void DoOperation(void) = 0;
 
-    virtual bool Check(ScalarType relErrTolerance) const = 0;
+    virtual void Check(ScalarType relErrTolerance) const = 0;
 };
 
