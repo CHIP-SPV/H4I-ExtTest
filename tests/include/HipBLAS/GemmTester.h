@@ -2,17 +2,12 @@
 // See LICENSE.txt in the root of the source distribution for license info.
 #pragma once
 
-#include <vector>
-#include <tuple>
-
-#include "hipblas.h"
-#include "HipStream.h"
-#include "HipBLAS/HipblasException.h"
-#include "HipBLAS/HipblasContext.h"
+#include "HipBLAS/HipblasTester.h"
 #include "Matrix.h"
 
+
 template<typename ScalarType>
-class GemmTester
+class GemmTester : public HipblasTester<ScalarType>
 {
 public:
     using ResultType = Matrix<ScalarType>;
@@ -27,47 +22,6 @@ private:
     ScalarType beta;
 
     bool transB;
-
-    HipStream& hipStream;
-
-    // Create the input matrices with known values.
-    // Current test is:
-    // * Items in col 0 of A are all 1, otherwise 0.
-    // * Items in logical row 0 of B are all 1, otherwise 0.
-    // * Storage for B in memory may be transposed.
-    // * C[r, c] = r*c.
-    // After the GEMM, C[r,c] should be alpha + beta * r * c.
-    void InitMatrices(void)
-    {
-        for(auto r = 0; r < A.GetNumRows(); ++r)
-        {
-            A.El(r, 0) = 1;
-        }
-        A.CopyHostToDeviceAsync(hipStream);
-
-        for(auto c = 0; c < (transB ? B.GetNumRows() : B.GetNumCols()); ++c)
-        {
-            auto val = 1;
-            if(transB)
-            {
-                B.El(c, 0) = val;
-            }
-            else
-            {
-                B.El(0, c) = val;
-            }
-        }
-        B.CopyHostToDeviceAsync(hipStream);
-
-        for(auto c = 0; c < C.GetNumCols(); ++c)
-        {
-            for(auto r = 0; r < C.GetNumRows(); ++r)
-            {
-                C.El(r, c) = r*c;
-            }
-        }
-        C.CopyHostToDeviceAsync(hipStream);
-    }
 
     hipblasStatus_t CallGemm(hipblasHandle_t handle,
                                 hipblasOperation_t transA,
@@ -89,15 +43,6 @@ private:
         assert(false);
     }
 
-    // Compute relative error of computed value compared to expected value.
-    // NB: this is not *quite* the true relative error.  If the expected value
-    // is 0, we return absolute error.
-    static ScalarType RelativeError(ScalarType expVal, ScalarType compVal)
-    {
-        auto delta = compVal - expVal;
-        return std::abs((expVal != 0) ? (delta / expVal) : delta);
-    }
-
 public:
     GemmTester(int _m,
                 int _n,
@@ -106,21 +51,58 @@ public:
                 ScalarType _beta,
                 bool _transB,
                 HipStream& _hipStream)
-      : A(_m, _k),
+      : HipblasTester<ScalarType>(_hipStream),
+        A(_m, _k),
         B( _transB ? _n : _k, _transB ? _k : _n ),
         C(_m, _n),
         alpha(_alpha),
         beta(_beta),
-        transB(_transB),
-        hipStream(_hipStream)
+        transB(_transB)
+    { }
+
+    // Create the input matrices with known values.
+    // Current test is:
+    // * Items in col 0 of A are all 1, otherwise 0.
+    // * Items in logical row 0 of B are all 1, otherwise 0.
+    // * Storage for B in memory may be transposed.
+    // * C[r, c] = r*c.
+    // After the GEMM, C[r,c] should be alpha + beta * r * c.
+    void Init(void) override
     {
-        InitMatrices();
+        for(auto r = 0; r < A.GetNumRows(); ++r)
+        {
+            A.El(r, 0) = 1;
+        }
+        A.CopyHostToDeviceAsync(this->hipStream);
+
+        for(auto c = 0; c < (transB ? B.GetNumRows() : B.GetNumCols()); ++c)
+        {
+            auto val = 1;
+            if(transB)
+            {
+                B.El(c, 0) = val;
+            }
+            else
+            {
+                B.El(0, c) = val;
+            }
+        }
+        B.CopyHostToDeviceAsync(this->hipStream);
+
+        for(auto c = 0; c < C.GetNumCols(); ++c)
+        {
+            for(auto r = 0; r < C.GetNumRows(); ++r)
+            {
+                C.El(r, c) = r*c;
+            }
+        }
+        C.CopyHostToDeviceAsync(this->hipStream);
     }
 
 
-    OpStatusType DoOperation(void)
+    void DoOperation(void) override
     {
-        HipblasContext blasContext(hipStream);
+        HipblasContext blasContext(this->hipStream);
 
 #if READY
         // We need the GEMM to assume our scalars
@@ -137,7 +119,7 @@ public:
 
         // This assumes column major ordering (the use of nRows for leading dimension).
         // Use of nRows does not differ depending on whether B is transposed.
-        auto opStatus = CallGemm(blasContext.GetHandle(),
+        HBCHECK(CallGemm(blasContext.GetHandle(),
                             HIPBLAS_OP_N,
                             transB ? HIPBLAS_OP_T : HIPBLAS_OP_N,
                             A.GetNumRows(),
@@ -150,16 +132,14 @@ public:
                             B.GetNumRows(),
                             &beta,
                             C.GetDeviceData(),
-                            C.GetNumRows());
-        hipStream.Synchronize();
+                            C.GetNumRows()));
+        this->hipStream.Synchronize();
 
         // Read computed result from device to host.
-        C.CopyDeviceToHostAsync(hipStream);
-
-        return opStatus;
+        C.CopyDeviceToHostAsync(this->hipStream);
     }
 
-    uint32_t Check(ScalarType relErrTolerance) const
+    bool Check(ScalarType relErrTolerance) const override
     {
         uint32_t nMismatches = 0;
 
@@ -179,7 +159,7 @@ public:
                 {
                     auto expVal = (alpha + beta * r * c);
                     auto compVal = C.El(r, c);
-                    auto err = RelativeError(expVal, compVal);
+                    auto err = HipTester<ScalarType>::RelativeError(expVal, compVal);
                     if(err > relErrTolerance)
                     {
                         ++nMismatches;
@@ -198,7 +178,7 @@ public:
             // Consider all elements as mismatches.
             nMismatches = expNumRows * expNumCols;
         }
-        return nMismatches;
+        return (nMismatches == 0);
     }
 };
 

@@ -31,20 +31,15 @@ GemmTestSection(std::string sectionName, HipStream& hipStream)
 
         // Build a test driver.
         TesterType tester(m, n, k, alpha, beta, transB, hipStream);
+        REQUIRE_NOTHROW(tester.Init());
 
         // Do the operation.
-        auto opStatus = tester.DoOperation();
+        REQUIRE_NOTHROW(tester.DoOperation());
         hipStream.Synchronize();
-        REQUIRE(opStatus == HIPBLAS_STATUS_SUCCESS);
 
         // Verify the result.
-        if(opStatus == HIPBLAS_STATUS_SUCCESS)
-        {
-            ScalarType relErrTolerance = 0.0001;
-
-            auto nMismatches = tester.Check(relErrTolerance);
-            REQUIRE(nMismatches == 0);
-        }
+        ScalarType relErrTolerance = 0.0001;
+        REQUIRE(tester.Check(relErrTolerance));
     }
 }
 
