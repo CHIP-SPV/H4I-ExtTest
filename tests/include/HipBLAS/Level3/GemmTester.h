@@ -45,6 +45,36 @@ private:
         assert(false);
     }
 
+    static void TestSectionAux(std::string sectionName, HipStream& hipStream)
+    {
+        using TesterType = GemmTester<ScalarType>;
+
+        SECTION(sectionName)
+        {
+            // Specify the problem.
+            // A: m x k
+            // B: k x n
+            // C: m x n
+            int m = GENERATE(take(1, random(50, 150)));
+            int n = GENERATE(take(1, random(50, 150)));
+            int k = GENERATE(take(1, random(50, 150)));
+            ScalarType alpha = 0.5; GENERATE(take(1, random(-1.0, 1.0)));
+            ScalarType beta = 0.75; GENERATE(take(1, random(-2.5, 2.5)));
+            auto transB = GENERATE(false, true);
+
+            // Build a test driver.
+            TesterType tester(m, n, k, alpha, beta, transB, hipStream);
+            REQUIRE_NOTHROW(tester.Init());
+
+            // Do the operation.
+            REQUIRE_NOTHROW(tester.DoOperation());
+
+            // Verify the result.
+            ScalarType relErrTolerance = 0.0001;
+            tester.Check(relErrTolerance);
+        }
+    }
+
 public:
     GemmTester(int _m,
                 int _n,
@@ -161,6 +191,14 @@ public:
             }
         }
     }
+
+    // Declare a Catch2 section for a GEMM test.
+    static void TestSection(HipStream& hipStream)
+    {
+        // Generic version should never be called.
+        // Specializations provided later.
+        assert(false);
+    }
 };
 
 
@@ -234,36 +272,17 @@ GemmTester<double>::CallGemm(hipblasHandle_t handle,
 }
 
 
-// Declare a Catch2 section for a GEMM test.
-template<typename ScalarType>
+template<>
 void
-GemmTestSection(std::string sectionName, HipStream& hipStream)
+GemmTester<float>::TestSection(HipStream& hipStream)
 {
-    using TesterType = GemmTester<ScalarType>;
+    TestSectionAux("sgemm", hipStream);
+}
 
-    SECTION(sectionName)
-    {
-        // Specify the problem.
-        // A: m x k
-        // B: k x n
-        // C: m x n
-        int m = GENERATE(take(1, random(50, 150)));
-        int n = GENERATE(take(1, random(50, 150)));
-        int k = GENERATE(take(1, random(50, 150)));
-        ScalarType alpha = 0.5; GENERATE(take(1, random(-1.0, 1.0)));
-        ScalarType beta = 0.75; GENERATE(take(1, random(-2.5, 2.5)));
-        auto transB = GENERATE(false, true);
-
-        // Build a test driver.
-        TesterType tester(m, n, k, alpha, beta, transB, hipStream);
-        REQUIRE_NOTHROW(tester.Init());
-
-        // Do the operation.
-        REQUIRE_NOTHROW(tester.DoOperation());
-
-        // Verify the result.
-        ScalarType relErrTolerance = 0.0001;
-        tester.Check(relErrTolerance);
-    }
+template<>
+void
+GemmTester<double>::TestSection(HipStream& hipStream)
+{
+    TestSectionAux("dgemm", hipStream);
 }
 

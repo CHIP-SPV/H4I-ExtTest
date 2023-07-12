@@ -11,7 +11,7 @@ TEST_CASE("GEMM", "[BLAS][BLAS3]")
 
     HipStream hipStream(createCustomStream);
 
-    GemmTestSection<float>("sgemm", hipStream);
-    GemmTestSection<double>("dgemm", hipStream);
+    GemmTester<float>::TestSection(hipStream);
+    GemmTester<double>::TestSection(hipStream);
 }
 
