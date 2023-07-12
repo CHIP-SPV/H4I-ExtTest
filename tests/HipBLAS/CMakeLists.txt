@@ -18,12 +18,14 @@ function(define_hipblas_executable TARGET_NAME TARGET_SOURCES)
 endfunction()
 
 # Specify how to build our test executables.
-define_hipblas_executable(hipblas_level3 level3.cpp)
 define_hipblas_executable(hipblas_handle_mgmt handle_mgmt.cpp)
+define_hipblas_executable(hipblas_level1 level1.cpp)
+define_hipblas_executable(hipblas_level3 level3.cpp)
 
 # Specify how (and where) to install our targets.
 install(TARGETS
-            hipblas_level3
             hipblas_handle_mgmt
+            hipblas_level1
+            hipblas_level3
     RUNTIME)
 
