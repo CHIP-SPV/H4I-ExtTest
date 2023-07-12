@@ -12,8 +12,11 @@ template<typename ScalarType>
 class HipblasTester : public HipTester<ScalarType>
 {
 protected:
+    HipblasContext blasContext;
+
     HipblasTester(HipStream& _hipStream)
-      : HipTester<ScalarType>(_hipStream)
+      : HipTester<ScalarType>(_hipStream),
+        blasContext(this->hipStream)
     { }
 
 public:

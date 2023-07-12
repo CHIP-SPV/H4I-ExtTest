@@ -102,24 +102,22 @@ public:
 
     void DoOperation(void) override
     {
-        HipblasContext blasContext(this->hipStream);
-
 #if READY
         // We need the GEMM to assume our scalars
         // are in host memory.
         hipblasPointerMode_t desiredPointerMode = HIPBLAS_POINTER_MODE_HOST;
         hipblasPointerMode_t pointerMode;
-        HBCHECK(hipblasGetPointerMode(blasContext.GetHandle(), &pointerMode));
+        HBCHECK(hipblasGetPointerMode(this->blasContext.GetHandle(), &pointerMode));
         if(pointerMode != desiredPointerMode)
         {
             std::cout << "Changing pointer mode to read scalars from host memory." << std::endl;
-            HBCHECK(hipblasSetPointerMode(blasContext.GetHandle(), desiredPointerMode));
+            HBCHECK(hipblasSetPointerMode(this->blasContext.GetHandle(), desiredPointerMode));
         }
 #endif // READY
 
         // This assumes column major ordering (the use of nRows for leading dimension).
         // Use of nRows does not differ depending on whether B is transposed.
-        HBCHECK(CallGemm(blasContext.GetHandle(),
+        HBCHECK(CallGemm(this->blasContext.GetHandle(),
                             HIPBLAS_OP_N,
                             transB ? HIPBLAS_OP_T : HIPBLAS_OP_N,
                             A.GetNumRows(),
