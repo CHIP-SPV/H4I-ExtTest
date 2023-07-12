@@ -6,7 +6,7 @@
 #include <vector>
 #include <tuple>
 
-#include "HipBLAS/GemmTester.h"
+#include "HipBLAS/Level3/GemmTester.h"
 
 
 // Declare a Catch2 section for a GEMM test.
