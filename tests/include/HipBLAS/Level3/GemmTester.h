@@ -129,6 +129,8 @@ public:
             }
         }
         C.CopyHostToDeviceAsync(this->hipStream);
+
+        this->hipStream.Synchronize();
     }
 
 
