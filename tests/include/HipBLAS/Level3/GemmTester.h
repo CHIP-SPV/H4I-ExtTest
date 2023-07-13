@@ -7,13 +7,17 @@
 #include "HipBLAS/HipblasTester.h"
 #include "Matrix.h"
 
+namespace H4I::ExtTest
+{
 
 template<typename ScalarType>
 class GemmTester : public HipblasTester<ScalarType>
 {
 public:
+#if READY
     using ResultType = Matrix<ScalarType>;
     using OpStatusType = hipblasStatus_t;
+#endif // READY
 
 private:
     // Our matrices.
@@ -287,4 +291,6 @@ GemmTester<double>::TestSection(HipStream& hipStream)
 {
     TestSectionAux("dgemm", hipStream);
 }
+
+} // namespace
 

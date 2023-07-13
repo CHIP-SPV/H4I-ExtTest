@@ -1,19 +1,11 @@
 // Copyright 2021-2023 UT-Battelle
 // See LICENSE.txt in the root of the source distribution for license info.
-#ifndef MATRIX_H
-#define MATRIX_H
+#pragma once
 
-#include <iostream>
-#include <vector>
-#include <cstring>  // for memset
-#include "hip/hip_runtime.h"
+#include "Buffer.h"
 
-#include "ExtTestConfig.h"
-#if defined(TEST_HALF_PRECISION)
-#include "hip/hip_fp16.h"
-#endif // defined(TEST_HALF_PRECISION)
-
-#include "HipstarException.h"
+namespace H4I::ExtTest
+{
 
 // A Matrix in CPU and GPU memory.
 // The matrix elements are stored in column major order
@@ -21,132 +13,38 @@
 // implementations that were originally designed for
 // Fortran applications.
 template<typename T>
-class Matrix
+class Matrix : public Buffer
 {
 protected:
     int nRows;
     int nCols;
 
-    T* hostData;
-    T* devData;
-
 public:
     Matrix(int _nRows, int _nCols)
-      : nRows(_nRows),
-        nCols(_nCols),
-        hostData(nullptr),
-        devData(nullptr)
-    {
-        HIPCHECK(hipHostMalloc(&hostData, GetSize()));
-        memset(hostData, 0, GetSize());
+      : Buffer(_nRows * _nCols * sizeof(T)),
+        nRows(_nRows),
+        nCols(_nCols)
+    { }
 
-        HIPCHECK(hipMalloc(&devData, GetSize()));
-        HIPCHECK(hipMemset(devData, 0, GetSize()));
-    }
-
-    ~Matrix(void)
-    {
-        if(hostData != nullptr)
-        {
-            HIPCHECK(hipHostFree(hostData));
-            hostData = nullptr;
-        }
-        if(devData != nullptr)
-        {
-            HIPCHECK(hipFree(devData));
-            devData = nullptr;
-        }
-    }
 
     int GetNumRows(void) const   { return nRows; }
     int GetNumCols(void) const   { return nCols; }
     int GetNumItems(void) const  { return nRows * nCols; }
-    int GetSize(void) const    { return GetNumItems() * sizeof(T); }
 
-    T* GetDeviceData(void) const  { return devData; }
-    T* GetHostData(void) const { return hostData; }
+    T* GetDeviceData(void) const  { return reinterpret_cast<T*>(devData); }
+    T* GetHostData(void) const { return reinterpret_cast<T*>(hostData); }
 
     // Access element from host storage.
     T& El(int r, int c)
     {
-        return hostData[c*nRows + r];
+        return GetHostData()[c*nRows + r];
     }
 
     const T& El(int r, int c) const
     {
-        return hostData[c*nRows + r];
-    }
-
-    void CopyHostToDevice(void)
-    {
-        HIPCHECK(hipMemcpy(devData,
-                        hostData,
-                        GetSize(),
-                        hipMemcpyHostToDevice));
-    }
-
-    void CopyHostToDeviceAsync(const HipStream& stream)
-    {
-        HIPCHECK(hipMemcpyAsync(devData,
-                            hostData,
-                            GetSize(),
-                            hipMemcpyHostToDevice,
-                            stream.GetHandle()));
-    }
-
-    void CopyDeviceToHost(void)
-    {
-        HIPCHECK(hipMemcpy(hostData,
-                        devData,
-                        GetSize(),
-                        hipMemcpyDeviceToHost));
-    }
-
-    void CopyDeviceToHostAsync(const HipStream& stream)
-    {
-        HIPCHECK(hipMemcpyAsync(hostData,
-                            devData,
-                            GetSize(),
-                            hipMemcpyDeviceToHost,
-                            stream.GetHandle()));
+        return GetHostData()[c*nRows + r];
     }
 };
 
+} // namespace
 
-#if defined(TEST_HALF_PRECISION)
-inline
-float
-ToFloat(const __half& h)
-{
-    return __half2float(h);
-}
-#endif // defined(TEST_HALF_PRECISION)
-
-inline
-float
-ToFloat(const float& f)
-{
-    return f;
-}
-
-// Dump a Matrix's data from device to the given stream.
-// Does *not* change the Matrix's data in host memory.
-template<typename T>
-std::ostream&
-operator<<(std::ostream& os, const Matrix<T>& m)
-{
-    std::vector<T> hdata(m.GetNumItems());
-    auto matrixSize = m.GetSize();
-    HIPCHECK(hipMemcpy(hdata.data(), m.GetDeviceData(), matrixSize, hipMemcpyDeviceToHost));
-    os << "dims: " << m.GetNumRows() << 'x' << m.GetNumCols()
-        << ", nItems: " << m.GetNumItems()
-        << ", size: " << matrixSize
-        << ", vals: ";
-    for(auto i = 0; i < m.GetNumItems(); ++i)
-    {
-        os << ToFloat(hdata[i]) << ' ';
-    }
-    return os;
-}
-
-#endif // MATRIX_H
