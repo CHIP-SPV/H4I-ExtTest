@@ -2,13 +2,10 @@
 // See LICENSE.txt in the root of the source distribution for license info.
 #include <catch2/generators/catch_generators_all.hpp>
 
-#if READY
 #include "HipBLAS/Level1/AxpyTester.h"
-#endif // READY
 #include "HipBLAS/Level1/DotTester.h"
 
 
-#if READY
 TEST_CASE("AXPY", "[BLAS][BLAS1]")
 {
     auto createCustomStream = GENERATE(false, true);
@@ -18,7 +15,6 @@ TEST_CASE("AXPY", "[BLAS][BLAS1]")
     AxpyTester<float>::TestSection(hipStream);
     AxpyTester<double>::TestSection(hipStream);
 }
-#endif // READY
 
 TEST_CASE("DOT", "[BLAS][BLAS1]")
 {
@@ -27,6 +23,6 @@ TEST_CASE("DOT", "[BLAS][BLAS1]")
     HipStream hipStream(createCustomStream);
 
     DotTester<float>::TestSection(hipStream);
-//     DotTester<double>::TestSection(hipStream);
+    DotTester<double>::TestSection(hipStream);
 }
 

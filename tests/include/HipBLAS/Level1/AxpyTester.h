@@ -9,36 +9,33 @@
 #include "Scalar.h"
 
 
-// A class to test the BLAS Level 1 dot product.
-// The input values are:
+// A class to test the BLAS Level 1 AXPY
+// The input vectors are:
 // x[i] = i with stride incx
 // y[i] = 2*i with stride incy
 //
-// By the definition of the dot product,
-// the result should be (in LaTeX representation)
-//   \sum_{i=1}^{n-1} 2*i^2
-// Using the fact that \sum_{i=1}^{n} i^2 == [n * (n+1) * (2*n + 1)] / 6,
-// this simplifies to
-//   (1/3) * (n-1) * n * (2*n - 1).
+// By the definition of the tested operation,
+// the result left in vector Y should be
+//   y[i] = a*i + 2*i = (a+2)*i
 //
 template<typename ScalarType>
-class DotTester : public HipblasTester<ScalarType>
+class AxpyTester : public HipblasTester<ScalarType>
 {
 private:
     int n;
+    Scalar<ScalarType> alpha;
     Vector<ScalarType> x;
     int incx;
     Vector<ScalarType> y;
     int incy;
-    Scalar<ScalarType> result;
 
-    static hipblasStatus_t CallDot(hipblasHandle_t handle,
+    static hipblasStatus_t CallAxpy(hipblasHandle_t handle,
                                 int n,
+                                const ScalarType* alpha,
                                 const ScalarType* x,
                                 int incx,
-                                const ScalarType* y,
-                                int incy,
-                                ScalarType* result)
+                                ScalarType* y,
+                                int incy)
     {
         // This generic version should never be called.
         // Specializations will be provided later.
@@ -47,17 +44,18 @@ private:
 
     static void TestSectionAux(std::string sectionName, HipStream& hipStream)
     {
-        using TesterType = DotTester<ScalarType>;
+        using TesterType = AxpyTester<ScalarType>;
 
         SECTION(sectionName)
         {
             // Specify the problem.
             int n = GENERATE(take(1, random(50, 150)));
+            ScalarType alpha = GENERATE(take(1, random(-2.5, 2.5)));
             int incx = GENERATE(1, 4);
             int incy = GENERATE(1, 7);
 
             // Build a test driver.
-            TesterType tester(n, incx, incy, hipStream);
+            TesterType tester(n, alpha, incx, incy, hipStream);
             REQUIRE_NOTHROW(tester.Init());
 
             // Do the operation.
@@ -70,12 +68,14 @@ private:
     }
 
 public:
-    DotTester(int _n,
+    AxpyTester(int _n,
+                ScalarType _alpha,
                 int _incx,
                 int _incy,
                 HipStream& _hipStream)
       : HipblasTester<ScalarType>(_hipStream),
         n(_n),
+        alpha(_alpha),
         x(_n, _incx),
         incx(_incx),
         y(_n, _incy),
@@ -99,8 +99,8 @@ public:
         }
         y.CopyHostToDeviceAsync(this->hipStream);
 
-        result.El() = 0;
-        result.CopyHostToDeviceAsync(this->hipStream);
+        // Alpha should already have its value in host memory.
+        alpha.CopyHostToDeviceAsync(this->hipStream);
 
         this->hipStream.Synchronize();
     }
@@ -123,23 +123,27 @@ public:
 
         // This assumes column major ordering (the use of nRows for leading dimension).
         // Use of nRows does not differ depending on whether B is transposed.
-        HBCHECK(CallDot(this->blasContext.GetHandle(),
+        HBCHECK(CallAxpy(this->blasContext.GetHandle(),
                             n,
+                            alpha.GetDeviceData(),
                             x.GetDeviceData(),
                             incx,
                             y.GetDeviceData(),
-                            incy,
-                            result.GetDeviceData()));
+                            incy));
 
-        result.CopyDeviceToHostAsync(this->hipStream);
+        y.CopyDeviceToHostAsync(this->hipStream);
 
         this->hipStream.Synchronize();
     }
 
     void Check(ScalarType relErrTolerance) const override
     {
-        auto expVal = (static_cast<ScalarType>(1) / 3) * (n - 1) * n * (2*n - 1);
-        REQUIRE_THAT(result.El(), Catch::Matchers::WithinRel(expVal, relErrTolerance));
+        auto a = alpha.El();
+        for(auto i = 0; i < n; ++i)
+        {
+            auto expVal = (a + 2)*i;
+            REQUIRE_THAT(y.El(i), Catch::Matchers::WithinRel(expVal, relErrTolerance));
+        }
     }
 
     // Declare a Catch2 section for a test.
@@ -155,56 +159,56 @@ public:
 // Single-precision operation.
 template<>
 hipblasStatus_t
-DotTester<float>::CallDot(hipblasHandle_t handle,
+AxpyTester<float>::CallAxpy(hipblasHandle_t handle,
                             int n,
+                            const float* alpha,
                             const float* x,
                             int incx,
-                            const float* y,
-                            int incy,
-                            float* result)
+                            float* y,
+                            int incy)
 {
-    return hipblasSdot(handle,
+    return hipblasSaxpy(handle,
             n,
+            alpha,
             x,
             incx,
             y,
-            incy,
-            result);
+            incy);
 }
 
 
 // Double-precision operation.
 template<>
 hipblasStatus_t
-DotTester<double>::CallDot(hipblasHandle_t handle,
+AxpyTester<double>::CallAxpy(hipblasHandle_t handle,
                             int n,
+                            const double* alpha,
                             const double* x,
                             int incx,
-                            const double* y,
-                            int incy,
-                            double* result)
+                            double* y,
+                            int incy)
 {
-    return hipblasDdot(handle,
+    return hipblasDaxpy(handle,
             n,
+            alpha,
             x,
             incx,
             y,
-            incy,
-            result);
+            incy);
 }
 
 
 template<>
 void
-DotTester<float>::TestSection(HipStream& hipStream)
+AxpyTester<float>::TestSection(HipStream& hipStream)
 {
-    TestSectionAux("sdot", hipStream);
+    TestSectionAux("saxpy", hipStream);
 }
 
 template<>
 void
-DotTester<double>::TestSection(HipStream& hipStream)
+AxpyTester<double>::TestSection(HipStream& hipStream)
 {
-    TestSectionAux("ddot", hipStream);
+    TestSectionAux("daxpy", hipStream);
 }
 

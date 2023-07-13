@@ -10,9 +10,11 @@ template<typename T>
 class Scalar : public Buffer
 {
 public:
-    Scalar(void)
+    Scalar(T initialHostVal = 0)
       : Buffer(sizeof(T))
-    { }
+    {
+        El() = initialHostVal;
+    }
 
     T* GetDeviceData(void) const  { return reinterpret_cast<T*>(devData); }
     T* GetHostData(void) const { return reinterpret_cast<T*>(hostData); }
