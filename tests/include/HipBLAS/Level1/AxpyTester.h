@@ -28,9 +28,7 @@ private:
     int n;
     Scalar<ScalarType> alpha;
     Vector<ScalarType> x;
-    int incx;
     Vector<ScalarType> y;
-    int incy;
 
     static hipblasStatus_t CallAxpy(hipblasHandle_t handle,
                                 int n,
@@ -80,9 +78,7 @@ public:
         n(_n),
         alpha(_alpha),
         x(_n, _incx),
-        incx(_incx),
-        y(_n, _incy),
-        incy(_incy)
+        y(_n, _incy)
     { }
 
     // Create the input with known values.  See the comment
@@ -130,9 +126,9 @@ public:
                             n,
                             alpha.GetDeviceData(),
                             x.GetDeviceData(),
-                            incx,
+                            x.GetIncrement(),
                             y.GetDeviceData(),
-                            incy));
+                            y.GetIncrement()));
 
         y.CopyDeviceToHostAsync(this->hipStream);
 

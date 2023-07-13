@@ -23,6 +23,7 @@ public:
     { }
 
     int GetNumItems(void) const  { return n; }
+    int GetIncrement(void) const { return stride; }
 
     T* GetDeviceData(void) const  { return reinterpret_cast<T*>(devData); }
     T* GetHostData(void) const { return reinterpret_cast<T*>(hostData); }

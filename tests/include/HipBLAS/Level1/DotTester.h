@@ -30,9 +30,7 @@ class DotTester : public HipblasTester<ScalarType>
 private:
     int n;
     Vector<ScalarType> x;
-    int incx;
     Vector<ScalarType> y;
-    int incy;
     Scalar<ScalarType> result;
 
     static hipblasStatus_t CallDot(hipblasHandle_t handle,
@@ -80,9 +78,7 @@ public:
       : HipblasTester<ScalarType>(_hipStream),
         n(_n),
         x(_n, _incx),
-        incx(_incx),
-        y(_n, _incy),
-        incy(_incy)
+        y(_n, _incy)
     { }
 
     // Create the input with known values.  See the comment
@@ -129,9 +125,9 @@ public:
         HBCHECK(CallDot(this->blasContext.GetHandle(),
                             n,
                             x.GetDeviceData(),
-                            incx,
+                            x.GetIncrement(),
                             y.GetDeviceData(),
-                            incy,
+                            y.GetIncrement(),
                             result.GetDeviceData()));
 
         result.CopyDeviceToHostAsync(this->hipStream);

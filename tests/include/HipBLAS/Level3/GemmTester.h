@@ -13,12 +13,6 @@ namespace H4I::ExtTest
 template<typename ScalarType>
 class GemmTester : public HipblasTester<ScalarType>
 {
-public:
-#if READY
-    using ResultType = Matrix<ScalarType>;
-    using OpStatusType = hipblasStatus_t;
-#endif // READY
-
 private:
     // Our matrices.
     Matrix<ScalarType> A;   // m x n
@@ -62,8 +56,8 @@ private:
             int m = GENERATE(take(1, random(50, 150)));
             int n = GENERATE(take(1, random(50, 150)));
             int k = GENERATE(take(1, random(50, 150)));
-            ScalarType alpha = 0.5; GENERATE(take(1, random(-1.0, 1.0)));
-            ScalarType beta = 0.75; GENERATE(take(1, random(-2.5, 2.5)));
+            ScalarType alpha = GENERATE(take(1, random(-1.0, 1.0)));
+            ScalarType beta = GENERATE(take(1, random(-2.5, 2.5)));
             auto transB = GENERATE(false, true);
 
             // Build a test driver.
