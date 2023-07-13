@@ -12,8 +12,8 @@ TEST_CASE("AXPY", "[BLAS][BLAS1]")
 
     HipStream hipStream(createCustomStream);
 
-    AxpyTester<float>::TestSection(hipStream);
-    AxpyTester<double>::TestSection(hipStream);
+    H4I::ExtTest::AxpyTester<float>::TestSection(hipStream);
+    H4I::ExtTest::AxpyTester<double>::TestSection(hipStream);
 }
 
 TEST_CASE("DOT", "[BLAS][BLAS1]")
@@ -22,7 +22,7 @@ TEST_CASE("DOT", "[BLAS][BLAS1]")
 
     HipStream hipStream(createCustomStream);
 
-    DotTester<float>::TestSection(hipStream);
-    DotTester<double>::TestSection(hipStream);
+    H4I::ExtTest::DotTester<float>::TestSection(hipStream);
+    H4I::ExtTest::DotTester<double>::TestSection(hipStream);
 }
 

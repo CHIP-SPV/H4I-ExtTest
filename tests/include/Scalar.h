@@ -4,6 +4,9 @@
 
 #include "Buffer.h"
 
+namespace H4I::ExtTest
+{
+
 // A scalar in CPU and GPU memory.
 // NB: we could use a vector of size 1 for this.
 template<typename T>
@@ -30,4 +33,6 @@ public:
         return GetHostData()[0];
     }
 };
+
+} // namespace
 

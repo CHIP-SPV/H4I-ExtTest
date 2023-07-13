@@ -9,6 +9,9 @@
 #include "Scalar.h"
 
 
+namespace H4I::ExtTest
+{
+
 // A class to test the BLAS Level 1 dot product.
 // The input values are:
 // x[i] = i with stride incx
@@ -207,4 +210,6 @@ DotTester<double>::TestSection(HipStream& hipStream)
 {
     TestSectionAux("ddot", hipStream);
 }
+
+} // namespace
 

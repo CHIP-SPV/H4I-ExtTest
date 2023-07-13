@@ -15,8 +15,24 @@ project(ExtTest
 # be inherited by targets that "link" it.
 # In particular, we can't set a few C++ standards properties
 # and so either have to set them globally or on every target.
+#
+# We'd like to just use target_compile_features() to specify
+# that we need C++ 17 support, and not have to specify
+# CMAKE_CXX_STANDARD.  But CMake does not necessarily add
+# the -std flag to specify the C++ standard if it has determined
+# that the compiler's default is already at or above the 
+# standard specified in the target_compile_features().  
+# Normally this is not a problem, but in our case where we're
+# telling the compiler to compile it as HIP code (i.e., clang++ -x hip),
+# CMake's check fails to determine the compiler's default 
+# C++ standard level and apparently clang's default C++ level
+# when compiling HIP code is *not* the same as if it is compiling C++ code.
+# Long story short - we explicitly set CMAKE_CXX_STANDARD to
+# force CMake to add the '-std=c++17' flag to the clang++ command line
+# regardless of whether we're compiling HIP or straight C++ code.
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
+set(CMAKE_CXX_STANDARD 17)
 add_library(ExtTestConfig INTERFACE)
 target_compile_features(ExtTestConfig
     INTERFACE

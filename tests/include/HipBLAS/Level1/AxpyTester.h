@@ -9,6 +9,9 @@
 #include "Scalar.h"
 
 
+namespace H4I::ExtTest
+{
+
 // A class to test the BLAS Level 1 AXPY
 // The input vectors are:
 // x[i] = i with stride incx
@@ -211,4 +214,6 @@ AxpyTester<double>::TestSection(HipStream& hipStream)
 {
     TestSectionAux("daxpy", hipStream);
 }
+
+} // namespace
 

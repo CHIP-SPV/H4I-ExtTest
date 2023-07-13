@@ -4,6 +4,8 @@
 
 #include "Buffer.h"
 
+namespace H4I::ExtTest
+{
 
 // A Vector in CPU and GPU memory.
 template<typename T>
@@ -37,4 +39,5 @@ public:
     }
 };
 
+} // namespace
 

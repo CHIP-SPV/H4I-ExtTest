@@ -7,6 +7,9 @@
 #include "hip/hip_runtime.h"
 #include "HipstarException.h"
 
+namespace H4I::ExtTest
+{
+
 // A memory buffer in CPU and GPU memory,
 // with operations to transfer contents
 // between the memory spaces.
@@ -81,4 +84,5 @@ public:
     }
 };
 
+} // namespace
 
