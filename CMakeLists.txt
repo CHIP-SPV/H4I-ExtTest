@@ -45,10 +45,7 @@ target_include_directories(ExtTestConfig
 
 # We will use HIP in some fashion, no matter which platform
 # we're targeting or what parts of the software we're building.
-find_package(HIP REQUIRED)
-# CMake's support for HIP as a first class language seems
-# to assume a ROCm-based implementation.  So we can't use it.
-#enable_language(HIP)
+find_package(hip REQUIRED)
 
 # The standalone tests should work with either the libraries
 # provided with ROCm or our H4I implementations.
@@ -58,11 +55,7 @@ option(H4I_USE_ROCM_LIBS "Whether to use ROCm-installed libraries (e.g., ROCm's 
 # Experience shows these seem to be troublesome with CHIP-SPV and the H4I-HipBLAS libraries.
 option(TEST_HALF_PRECISION "Whether to include half-precision tests" OFF)
 
-# Our standalone tests use some Boost libraries.
-find_package(Boost REQUIRED
-    COMPONENTS program_options)
-
-# We use CTest support for driving tests.
+# We (may) use CTest support for driving tests.
 include(CTest)
 
 # We use Catch2 to implement (many? most? all?) tests.
@@ -81,7 +74,14 @@ else()
 endif()
 include(Catch)
 
-# We don't bother testing the BUILD_TESTING variable,
-# since the purpose of this repository is to do tests.
+# The purpose of this repository is to build tests,
+# so we don't condition whether we descend into the
+# tests directory on the BUILD_TESTING variable.
+# NB: we do use BUILD_TESTING later to decide whether to
+# register the tests we build with CTest.  We allow this
+# type of user control because there are situations where
+# the build environment is different than the run environment,
+# and so we can't run the Catch2-based executables to list the
+# tests they implement in the build environment.
 add_subdirectory(tests)
 
