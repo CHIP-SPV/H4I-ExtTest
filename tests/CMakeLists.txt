@@ -11,7 +11,7 @@ if(NOT H4I_USE_ROCM_LIBS)
     set(HIPBLAS_LIBS H4I::hipblas)
 else()
     # We are using the ROCm hipblas.
-    set(HIPBLAS_LIBS roc::hipblas)
+    set(HIPBLAS_LIBS roc::hipblas ${hip_LIBRARIES})
 endif()
 
 # add_subdirectory(src)
