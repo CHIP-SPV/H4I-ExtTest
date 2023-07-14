@@ -16,16 +16,22 @@ namespace H4I::ExtTest
 // * A is m x n.  All elements of matrix A are 1.
 // * x[i] = i with increment incx
 // * y[i] = 2*i with increment incy
+//
+// Note: unlike Level3's GEMM, specifying transA == true
+// does not change the dimensions of A.  As per the
+// Netlib description of GEMV, it does change the
+// lengths of x and y.
+//
 // After the operation,
 //   y[i] should be (using LaTeX representation):
 //
-//   if we did the test with A not transposed:
+//   if we did not transpose A:
 //     y is of length m with:
 //     y[i] = 2*\beta*i + \alpha*\sum_{k=0}^{m-1}k
 //          = 2*\beta*i + \alpha*\sum_{k=1}^{m-1}k
 //          = 2*\beta*i + \alpha*[m*(m-1)]/2
 //
-//   if we did the test with A transposed:
+//   if we did transpose A:
 //     y is of length n with:
 //     y[i] = 2*\beta*i + \alpha*[n*(n-1)]/2
 //
