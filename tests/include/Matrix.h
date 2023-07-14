@@ -2,6 +2,7 @@
 // See LICENSE.txt in the root of the source distribution for license info.
 #pragma once
 
+#include <tuple>
 #include "Buffer.h"
 
 namespace H4I::ExtTest
@@ -20,10 +21,17 @@ protected:
     int nCols;
 
 public:
+    Matrix(void) = delete;
     Matrix(int _nRows, int _nCols)
       : Buffer(_nRows * _nCols * sizeof(T)),
         nRows(_nRows),
         nCols(_nCols)
+    { }
+
+    Matrix(const std::pair<int, int>& dims)
+      : Buffer(dims.first * dims.second * sizeof(T)),
+        nRows(dims.first),
+        nCols(dims.second)
     { }
 
 
