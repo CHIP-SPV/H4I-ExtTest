@@ -10,18 +10,45 @@
 namespace H4I::ExtTest
 {
 
+// Tester for GEMM operation.
+// GEMM computes C = alpha * op(A) * op(B) + beta * C
+// where:
+//   A, B, and C are matrices
+//   alpha and beta are scalars
+//   for matrix M, op(M) means either M or M^T
+//
+// Since A and B may be transposed independently, there
+// are four cases for op(A) * op(B).
+//
+// Since C is an m x n matrix always, each product must result
+// in an m x n matrix.  Thus, A is m x k if not transposed, k x m if it is.
+// And B is k x n if not transposed, n x k if it is.
+// 
+// To make the test tractable, we initialize op(A) and op(B) so that
+// op(A) * op(B) is an m x n matrix where each element is 1.
+// I.e., we initialize op(A) with 1s in the first column and 0s elsewhere,
+// and op(B) with 1s in the first row and 0s elsewhere.
+//
+// We initialize C[r, c] to r*c.
+//
+// With this initial data, after the operation:
+//   C[r, c] = alpha + beta * r * c
+//
 template<typename ScalarType>
 class GemmTester : public HipblasTester<ScalarType>
 {
 private:
-    // Our matrices.
-    Matrix<ScalarType> A;   // m x n
-    Matrix<ScalarType> B;   // n x k, may be transposed
-    Matrix<ScalarType> C;   // m x k
+    bool transA;
+    bool transB;
+    int m;
+    int n;
+    int k;
+    Matrix<ScalarType> A;
+    Matrix<ScalarType> B;
+    Matrix<ScalarType> C;
     ScalarType alpha;
     ScalarType beta;
 
-    bool transB;
 
     hipblasStatus_t CallGemm(hipblasHandle_t handle,
                                 hipblasOperation_t transA,
@@ -38,8 +65,8 @@ private:
                                 ScalarType* C,
                                 int ldc)
     {
-        // Generic version should never be called.
-        // Specializations provided later.
+        // This generic version should never be called.
+        // Specializations for specific types are provided later.
         assert(false);
     }
 
@@ -50,18 +77,16 @@ private:
         SECTION(sectionName)
         {
             // Specify the problem.
-            // A: m x k
-            // B: k x n
-            // C: m x n
+            auto transA = true; // GENERATE(false, true);
+            auto transB = false; // GENERATE(false, true);
             int m = GENERATE(take(1, random(50, 150)));
             int n = GENERATE(take(1, random(50, 150)));
             int k = GENERATE(take(1, random(50, 150)));
             ScalarType alpha = GENERATE(take(1, random(-1.0, 1.0)));
             ScalarType beta = GENERATE(take(1, random(-2.5, 2.5)));
-            auto transB = GENERATE(false, true);
 
             // Build a test driver.
-            TesterType tester(m, n, k, alpha, beta, transB, hipStream);
+            TesterType tester(transA, transB, m, n, k, alpha, beta, hipStream);
             REQUIRE_NOTHROW(tester.Init());
 
             // Do the operation.
@@ -74,48 +99,40 @@ private:
     }
 
 public:
-    GemmTester(int _m,
+    GemmTester(bool _transA,
+                bool _transB,
+                int _m,
                 int _n,
                 int _k,
                 ScalarType _alpha,
                 ScalarType _beta,
-                bool _transB,
                 HipStream& _hipStream)
       : HipblasTester<ScalarType>(_hipStream),
-        A(_m, _k),
-        B( _transB ? _n : _k, _transB ? _k : _n ),
-        C(_m, _n),
+        transA(_transA),
+        transB(_transB),
+        m(_m),
+        n(_n),
+        k(_k),
+        A(!transA ? std::pair(m, k) : std::pair(k, m)),
+        B(!transB ? std::pair(k, n) : std::pair(n, k)),
+        C(m, n),
         alpha(_alpha),
-        beta(_beta),
-        transB(_transB)
+        beta(_beta)
     { }
 
-    // Create the input matrices with known values.
-    // Current test is:
-    // * Items in col 0 of A are all 1, otherwise 0.
-    // * Items in logical row 0 of B are all 1, otherwise 0.
-    // * Storage for B in memory may be transposed.
-    // * C[r, c] = r*c.
-    // After the GEMM, C[r,c] should be alpha + beta * r * c.
+    // Create the input matrices with known values as described
+    // in the class comment.
     void Init(void) override
     {
-        for(auto r = 0; r < A.GetNumRows(); ++r)
+        for(auto r = 0; r < m; ++r)
         {
-            A.El(r, 0) = 1;
+            A.El(!transA ? std::pair(r, 0) : std::pair(0, r)) = 1;
         }
         A.CopyHostToDeviceAsync(this->hipStream);
 
-        for(auto c = 0; c < (transB ? B.GetNumRows() : B.GetNumCols()); ++c)
+        for(auto c = 0; c < n; ++c)
         {
-            auto val = 1;
-            if(transB)
-            {
-                B.El(c, 0) = val;
-            }
-            else
-            {
-                B.El(0, c) = val;
-            }
+            B.El(!transB ? std::pair(0, c) : std::pair(c, 0)) = 1;
         }
         B.CopyHostToDeviceAsync(this->hipStream);
 
@@ -148,21 +165,21 @@ public:
 #endif // READY
 
         // This assumes column major ordering (the use of nRows for leading dimension).
-        // Use of nRows does not differ depending on whether B is transposed.
+        // Use of nRows as lda, ldb does not differ depending on whether A, B are transposed.
         HBCHECK(CallGemm(this->blasContext.GetHandle(),
-                            HIPBLAS_OP_N,
-                            transB ? HIPBLAS_OP_T : HIPBLAS_OP_N,
+                            !transA ? HIPBLAS_OP_N : HIPBLAS_OP_T,
+                            !transB ? HIPBLAS_OP_N : HIPBLAS_OP_T,
                             A.GetNumRows(),
                             C.GetNumCols(),
                             A.GetNumCols(),
                             &alpha,
                             A.GetDeviceData(),
-                            A.GetNumRows(),
+                            !transA ? m : k,
                             B.GetDeviceData(),
-                            B.GetNumRows(),
+                            !transB ? k : n,
                             &beta,
                             C.GetDeviceData(),
-                            C.GetNumRows()));
+                            m));
 
         // Read computed result from device to host.
         C.CopyDeviceToHostAsync(this->hipStream);
@@ -172,12 +189,9 @@ public:
 
     void Check(ScalarType relErrTolerance) const override
     {
-        auto expNumRows = A.GetNumRows();
-        auto expNumCols = transB ? B.GetNumRows() : B.GetNumCols();
-
         // Verify result has right shape.
-        REQUIRE(C.GetNumRows() == expNumRows);
-        REQUIRE(C.GetNumCols() == (transB ? B.GetNumRows() : B.GetNumCols()));
+        REQUIRE(C.GetNumRows() == m);
+        REQUIRE(C.GetNumCols() == n);
 
         // Check error in each element is below given tolerance.
         // This assumes column major ordering.
