@@ -77,8 +77,8 @@ private:
         SECTION(sectionName)
         {
             // Specify the problem.
-            auto transA = true; // GENERATE(false, true);
-            auto transB = false; // GENERATE(false, true);
+            auto transA = GENERATE(false, true);
+            auto transB = GENERATE(false, true);
             int m = GENERATE(take(1, random(50, 150)));
             int n = GENERATE(take(1, random(50, 150)));
             int k = GENERATE(take(1, random(50, 150)));
@@ -169,9 +169,9 @@ public:
         HBCHECK(CallGemm(this->blasContext.GetHandle(),
                             !transA ? HIPBLAS_OP_N : HIPBLAS_OP_T,
                             !transB ? HIPBLAS_OP_N : HIPBLAS_OP_T,
-                            A.GetNumRows(),
-                            C.GetNumCols(),
-                            A.GetNumCols(),
+                            m,
+                            n,
+                            k,
                             &alpha,
                             A.GetDeviceData(),
                             !transA ? m : k,
