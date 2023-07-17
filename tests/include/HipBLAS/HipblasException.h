@@ -3,6 +3,8 @@
 #ifndef HIPBLAS_EXCEPTION_H
 #define HIPBLAS_EXCEPTION_H
 
+#include <string>
+#include <sstream>
 #include "HipstarException.h"
 
 using HipblasException = HipstarException<hipblasStatus_t>;
@@ -13,7 +15,9 @@ HBCHECK(hipblasStatus_t code)
 {
     if(code != HIPBLAS_STATUS_SUCCESS)
     {
-        throw HipblasException(code, "hipBLAS call failed");
+        std::ostringstream mstr;
+        mstr << "hipBLAS call failed, code: " << code;
+        throw HipblasException(code, mstr.str());
     }
 }
 
