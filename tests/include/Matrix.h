@@ -47,10 +47,18 @@ public:
     {
         return GetHostData()[c*nRows + r];
     }
+    T& El(const std::pair<int, int>& idx)
+    {
+        return GetHostData()[idx.second*nRows + idx.first];
+    }
 
     const T& El(int r, int c) const
     {
         return GetHostData()[c*nRows + r];
+    }
+    const T& El(const std::pair<int, int>& idx) const
+    {
+        return GetHostData()[idx.second*nRows + idx.first];
     }
 };
 
