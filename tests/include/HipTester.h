@@ -16,15 +16,6 @@ protected:
       : hipStream(_hipStream)
     { }
 
-    // Compute relative error of computed value compared to expected value.
-    // NB: this is not *quite* the true relative error.  If the expected value
-    // is 0, we return absolute error.
-    static ScalarType RelativeError(ScalarType expVal, ScalarType compVal)
-    {
-        auto delta = compVal - expVal;
-        return std::abs((expVal != 0) ? (delta / expVal) : delta);
-    }
-
 public:
     HipTester(void) = delete;
 
