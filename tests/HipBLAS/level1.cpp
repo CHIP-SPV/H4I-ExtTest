@@ -4,6 +4,9 @@
 
 #include "HipBLAS/Level1/AxpyTester.h"
 #include "HipBLAS/Level1/DotTester.h"
+#include "HipBLAS/Level1/CopyTester.h"
+#include "HipBLAS/Level1/IXamaxTester.h"
+#include "HipBLAS/Level1/IXaminTester.h"
 
 
 TEST_CASE("AXPY", "[BLAS][BLAS1]")
@@ -24,5 +27,35 @@ TEST_CASE("DOT", "[BLAS][BLAS1]")
 
     H4I::ExtTest::DotTester<float>::TestSection(hipStream);
     H4I::ExtTest::DotTester<double>::TestSection(hipStream);
+}
+
+TEST_CASE("COPY", "[BLAS][BLAS1]")
+{
+    auto createCustomStream = GENERATE(false, true);
+
+    HipStream hipStream(createCustomStream);
+
+    H4I::ExtTest::CopyTester<float>::TestSection(hipStream);
+    H4I::ExtTest::CopyTester<double>::TestSection(hipStream);
+}
+
+TEST_CASE("IXAMAX", "[BLAS][BLAS1]")
+{
+    auto createCustomStream = GENERATE(false, true);
+
+    HipStream hipStream(createCustomStream);
+
+    H4I::ExtTest::IXamaxTester<float>::TestSection(hipStream);
+    H4I::ExtTest::IXamaxTester<double>::TestSection(hipStream);
+}
+
+TEST_CASE("IXAMIN", "[BLAS][BLAS1]")
+{
+    auto createCustomStream = GENERATE(false, true);
+
+    HipStream hipStream(createCustomStream);
+
+    H4I::ExtTest::IXaminTester<float>::TestSection(hipStream);
+    H4I::ExtTest::IXaminTester<double>::TestSection(hipStream);
 }
 
