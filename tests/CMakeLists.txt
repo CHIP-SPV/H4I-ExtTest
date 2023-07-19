@@ -5,15 +5,39 @@ configure_file(
     ${CMAKE_SOURCE_DIR}/tests/include/ExtTestConfig.h.in
     ${CMAKE_BINARY_DIR}/tests/include/ExtTestConfig.h)
 
-# All tests under this directory use HipBLAS.
-find_package(hipblas REQUIRED)
-if(NOT H4I_USE_ROCM_LIBS)
-    set(HIPBLAS_LIBS H4I::hipblas)
-else()
-    # We are using the ROCm hipblas.
-    set(HIPBLAS_LIBS roc::hipblas ${hip_LIBRARIES})
+# Check if we have a hipBLAS implementation.
+find_package(hipblas)
+if(hipblas_FOUND)
+    message(STATUS "Found hipBLAS at ${hipblas_DIR}")
+
+    # We found a hipBLAS implementation.
+    if(TARGET H4I::hipblas)
+        # We found the H4I hipblas implementation.
+        set(HIPBLAS_LIBS H4I::hipblas)
+    else()
+        # Assume it is the ROCm hipblas.
+        set(HIPBLAS_LIBS roc::hipblas ${hip_LIBRARIES})
+    endif()
+
+    # Build the hipBLAS tests.
+    add_subdirectory(HipBLAS)
 endif()
 
-# add_subdirectory(src)
-add_subdirectory(HipBLAS)
+# Check if we have a hipSOLVER implementation.
+find_package(hipsolver)
+if(hipsolver_FOUND)
+    message(STATUS "Found hipSOLVER at ${hipsolver_DIR}")
+
+    # We found a hipSOLVER implementation.
+    if(TARGET H4I::hipsolver)
+        # We found the H4I hipsolver implementation.
+        set(HIPSOLVER_LIBS H4I::hipsolver)
+    else()
+        # Assume it is the ROCm hipsolver.
+        set(HIPSOLVER_LIBS roc::hipsolver ${hip_LIBRARIES})
+    endif()
+
+    # Build the hipSOLVER tests.
+    add_subdirectory(HipSOLVER)
+endif()
 
