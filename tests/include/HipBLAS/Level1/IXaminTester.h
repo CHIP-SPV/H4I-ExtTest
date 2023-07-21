@@ -93,7 +93,7 @@ public:
 
     void DoOperation(void) override
     {
-        HBCHECK(CallIXamin(this->blasContext.GetHandle(),
+        HBCHECK(CallIXamin(this->libContext.GetHandle(),
                             n,
                             x.GetDeviceData(),
                             x.GetIncrement(),

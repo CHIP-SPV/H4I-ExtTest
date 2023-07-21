@@ -3,23 +3,15 @@
 #pragma once
 
 #include "hip/hip_runtime_api.h"
+#include "HipstarLibraryContext.h"
 #include "hipblas.h"
 #include "HipStream.h"
 #include "HipblasException.h"
 
-class HipblasContext
+class HipblasContext : public HipstarLibraryContext<hipblasHandle_t>
 {
-private:
-    hipblasHandle_t handle;
-
 public:
-    HipblasContext(void)
-    {
-        HBCHECK(hipblasCreate(&handle));
-
-        // Use the default HIP stream.
-        // (I.e., don't call hipblasSetStream.)
-    }
+    HipblasContext(void) = delete;
 
     HipblasContext(const HipStream& stream)
     {
@@ -34,8 +26,7 @@ public:
     ~HipblasContext(void)
     {
         HBCHECK(hipblasDestroy(handle));
+        handle = nullptr;
     }
-
-    hipblasHandle_t GetHandle(void) const   { return handle; }
 };
 

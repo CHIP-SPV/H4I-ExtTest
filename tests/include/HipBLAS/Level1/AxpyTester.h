@@ -112,17 +112,15 @@ public:
         // are in host memory.
         hipblasPointerMode_t desiredPointerMode = HIPBLAS_POINTER_MODE_HOST;
         hipblasPointerMode_t pointerMode;
-        HBCHECK(hipblasGetPointerMode(this->blasContext.GetHandle(), &pointerMode));
+        HBCHECK(hipblasGetPointerMode(this->libContext.GetHandle(), &pointerMode));
         if(pointerMode != desiredPointerMode)
         {
             std::cout << "Changing pointer mode to read scalars from host memory." << std::endl;
-            HBCHECK(hipblasSetPointerMode(this->blasContext.GetHandle(), desiredPointerMode));
+            HBCHECK(hipblasSetPointerMode(this->libContext.GetHandle(), desiredPointerMode));
         }
 #endif // READY
 
-        // This assumes column major ordering (the use of nRows for leading dimension).
-        // Use of nRows does not differ depending on whether B is transposed.
-        HBCHECK(CallAxpy(this->blasContext.GetHandle(),
+        HBCHECK(CallAxpy(this->libContext.GetHandle(),
                             n,
                             alpha.GetDeviceData(),
                             x.GetDeviceData(),

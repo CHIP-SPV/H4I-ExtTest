@@ -14,7 +14,7 @@ namespace H4I::ExtTest
 // implementations that were originally designed for
 // Fortran applications.
 template<typename T>
-class Matrix : public Buffer
+class Matrix : public Buffer<T>
 {
 protected:
     int nRows;
@@ -23,15 +23,13 @@ protected:
 public:
     Matrix(void) = delete;
     Matrix(int _nRows, int _nCols)
-      : Buffer(_nRows * _nCols * sizeof(T)),
+      : Buffer<T>(_nRows * _nCols),
         nRows(_nRows),
         nCols(_nCols)
     { }
 
     Matrix(const std::pair<int, int>& dims)
-      : Buffer(dims.first * dims.second * sizeof(T)),
-        nRows(dims.first),
-        nCols(dims.second)
+      : Matrix(dims.first, dims.second)
     { }
 
 
@@ -39,26 +37,23 @@ public:
     int GetNumCols(void) const   { return nCols; }
     int GetNumItems(void) const  { return nRows * nCols; }
 
-    T* GetDeviceData(void) const  { return reinterpret_cast<T*>(devData); }
-    T* GetHostData(void) const { return reinterpret_cast<T*>(hostData); }
-
     // Access element from host storage.
     T& El(int r, int c)
     {
-        return GetHostData()[c*nRows + r];
+        return this->GetHostData()[c*nRows + r];
     }
     T& El(const std::pair<int, int>& idx)
     {
-        return GetHostData()[idx.second*nRows + idx.first];
+        return El(idx.first, idx.second);
     }
 
     const T& El(int r, int c) const
     {
-        return GetHostData()[c*nRows + r];
+        return this->GetHostData()[c*nRows + r];
     }
     const T& El(const std::pair<int, int>& idx) const
     {
-        return GetHostData()[idx.second*nRows + idx.first];
+        return El(idx.first, idx.second);
     }
 };
 

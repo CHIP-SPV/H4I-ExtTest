@@ -10,27 +10,24 @@ namespace H4I::ExtTest
 // A scalar in CPU and GPU memory.
 // NB: we could use a vector of size 1 for this.
 template<typename T>
-class Scalar : public Buffer
+class Scalar : public Buffer<T>
 {
 public:
     Scalar(T initialHostVal = 0)
-      : Buffer(sizeof(T))
+      : Buffer<T>(1)
     {
         El() = initialHostVal;
     }
 
-    T* GetDeviceData(void) const  { return reinterpret_cast<T*>(devData); }
-    T* GetHostData(void) const { return reinterpret_cast<T*>(hostData); }
-
     // Access element from host storage.
     T& El(void)
     {
-        return GetHostData()[0];
+        return this->GetHostData()[0];
     }
 
     const T& El(void) const
     {
-        return GetHostData()[0];
+        return this->GetHostData()[0];
     }
 };
 

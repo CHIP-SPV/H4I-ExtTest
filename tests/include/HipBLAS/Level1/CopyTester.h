@@ -95,7 +95,7 @@ public:
 
     void DoOperation(void) override
     {
-        HBCHECK(CallCopy(this->blasContext.GetHandle(),
+        HBCHECK(CallCopy(this->libContext.GetHandle(),
                             n,
                             x.GetDeviceData(),
                             x.GetIncrement(),

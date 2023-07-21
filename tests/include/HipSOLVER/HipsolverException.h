@@ -6,17 +6,17 @@
 #include <sstream>
 #include "HipstarException.h"
 
-using HipblasException = HipstarException<hipblasStatus_t>;
+using HipsolverException = HipstarException<hipsolverStatus_t>;
 
 inline
 void
-HBCHECK(hipblasStatus_t code)
+HSCHECK(hipsolverStatus_t code)
 {
-    if(code != HIPBLAS_STATUS_SUCCESS)
+    if(code != HIPSOLVER_STATUS_SUCCESS)
     {
         std::ostringstream mstr;
-        mstr << "hipBLAS call failed, code: " << code;
-        throw HipblasException(code, mstr.str());
+        mstr << "hipSOLVER call failed, code: " << code;
+        throw HipsolverException(code, mstr.str());
     }
 }
 

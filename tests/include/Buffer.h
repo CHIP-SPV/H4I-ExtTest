@@ -13,24 +13,27 @@ namespace H4I::ExtTest
 // A memory buffer in CPU and GPU memory,
 // with operations to transfer contents
 // between the memory spaces.
+template<typename T>
 class Buffer
 {
-protected:
-    size_t size;
-    char* hostData;
-    char* devData;
+private:
+    size_t size;    // number of T's
+    size_t rawSize;
+    T* hostData;
+    T* devData;
 
 public:
     Buffer(size_t _size)
       : size(_size),
+        rawSize(_size * sizeof(T)),
         hostData(nullptr),
         devData(nullptr)
     {
-        HIPCHECK(hipHostMalloc(&hostData, size));
-        memset(hostData, 0, size);
+        HIPCHECK(hipHostMalloc(&hostData, rawSize));
+        memset(hostData, 0, rawSize);
 
-        HIPCHECK(hipMalloc(&devData, size));
-        HIPCHECK(hipMemset(devData, 0, size));
+        HIPCHECK(hipMalloc(&devData, rawSize));
+        HIPCHECK(hipMemset(devData, 0, rawSize));
     }
 
     ~Buffer(void)
@@ -49,11 +52,22 @@ public:
 
     size_t GetSize(void) const    { return size; }
 
+#if READY
+    T* GetHostData(void)    { return hostData; }
+    const T* const GetHostData(void) const  { return hostData; }
+
+    T* GetDeviceData(void)    { return devData; }
+    const T* const GetDeviceData(void) const  { return devData; }
+#else
+    T* GetHostData(void) const  { return hostData; }
+    T* GetDeviceData(void) const    { return devData; }
+#endif // READY
+
     void CopyHostToDevice(void)
     {
         HIPCHECK(hipMemcpy(devData,
                         hostData,
-                        size,
+                        rawSize,
                         hipMemcpyHostToDevice));
     }
 
@@ -61,7 +75,7 @@ public:
     {
         HIPCHECK(hipMemcpyAsync(devData,
                             hostData,
-                            size,
+                            rawSize,
                             hipMemcpyHostToDevice,
                             stream.GetHandle()));
     }
@@ -70,7 +84,7 @@ public:
     {
         HIPCHECK(hipMemcpy(hostData,
                         devData,
-                        size,
+                        rawSize,
                         hipMemcpyDeviceToHost));
     }
 
@@ -78,7 +92,7 @@ public:
     {
         HIPCHECK(hipMemcpyAsync(hostData,
                             devData,
-                            size,
+                            rawSize,
                             hipMemcpyDeviceToHost,
                             stream.GetHandle()));
     }

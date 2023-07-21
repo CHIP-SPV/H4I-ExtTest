@@ -19,9 +19,11 @@ endfunction()
 
 # Specify how to build our test executables.
 define_hipsolver_executable(hipsolver_handle_mgmt handle_mgmt.cpp)
+define_hipsolver_executable(hipsolver_linear_solve linear_solve.cpp)
 
 # Specify how (and where) to install our targets.
 install(TARGETS
             hipsolver_handle_mgmt
+            hipsolver_linear_solve
     RUNTIME)
 

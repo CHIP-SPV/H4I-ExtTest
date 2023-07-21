@@ -1,0 +1,18 @@
+// Copyright 2021-2023 UT-Battelle
+// See LICENSE.txt in the root of the source distribution for license info.
+#pragma once
+
+template<typename HandleType>
+class HipstarLibraryContext
+{
+protected:
+    HandleType handle;
+
+public:
+    HipstarLibraryContext(void)
+      : handle(nullptr)
+    { }
+
+    HandleType GetHandle(void) const   { return handle; }
+};
+

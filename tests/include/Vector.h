@@ -9,7 +9,7 @@ namespace H4I::ExtTest
 
 // A Vector in CPU and GPU memory.
 template<typename T>
-class Vector : public Buffer
+class Vector : public Buffer<T>
 {
 protected:
     int n;
@@ -17,7 +17,7 @@ protected:
 
 public:
     Vector(int _n, int _stride = 1)
-      : Buffer(_n * _stride * sizeof(T)),
+      : Buffer<T>(_n * _stride),
         n(_n),
         stride(_stride)
     { }
@@ -25,18 +25,15 @@ public:
     int GetNumItems(void) const  { return n; }
     int GetIncrement(void) const { return stride; }
 
-    T* GetDeviceData(void) const  { return reinterpret_cast<T*>(devData); }
-    T* GetHostData(void) const { return reinterpret_cast<T*>(hostData); }
-
     // Access element from host storage.
     T& El(int i)
     {
-        return GetHostData()[stride * i];
+        return this->GetHostData()[stride * i];
     }
 
     const T& El(int i) const
     {
-        return GetHostData()[stride * i];
+        return this->GetHostData()[stride * i];
     }
 };
 

@@ -3,8 +3,8 @@
 #pragma once
 
 #include "HipstarTester.h"
-#include "HipBLAS/HipblasContext.h"
+#include "HipSOLVER/HipsolverContext.h"
 
 template<typename ScalarType>
-using HipblasTester = HipstarTester<ScalarType, HipblasContext>;
+using HipsolverTester = HipstarTester<ScalarType, HipsolverContext>;
 
