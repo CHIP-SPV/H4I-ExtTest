@@ -28,17 +28,27 @@ private:
     // *NOT* part of the BLAS definition of the operation.
     ScalarType scalingFactor;
 
-    static hipblasStatus_t CallCopy(hipblasHandle_t handle,
-                                int n,
-                                const ScalarType* x,
-                                int incx,
-                                ScalarType* y,
-                                int incy)
-    {
-        // This generic version should never be called.
-        // Specializations will be provided later.
-        assert(false);
-    }
+    // Disallow types for which we don't specialize.
+    template<typename T>
+    inline static const std::string opname;
+
+    template<typename T>
+    static auto copy(void) = delete;
+
+    // Specializations for float.
+    template<>
+    inline static const std::string opname<float> = "scopy";
+
+    template<>
+    static auto copy<float>(void)   { return hipblasScopy; }
+
+    // Specializations for double.
+    template<>
+    inline static const std::string opname<double> = "dcopy";
+
+    template<>
+    static auto copy<double>(void)  { return hipblasDcopy; }    
+
 
     static void TestSectionAux(std::string sectionName, HipStream& hipStream)
     {
@@ -95,7 +105,8 @@ public:
 
     void DoOperation(void) override
     {
-        HBCHECK(CallCopy(this->libContext.GetHandle(),
+        auto opfunc = copy<ScalarType>();
+        HBCHECK(opfunc(this->libContext.GetHandle(),
                             n,
                             x.GetDeviceData(),
                             x.GetIncrement(),
@@ -119,62 +130,29 @@ public:
     {
         // This generic version should never be called.
         // Specializations are provided later.
-        assert(false);
+        using TesterType = CopyTester<ScalarType>;
+
+        SECTION(opname<ScalarType>)
+        {
+            // Specify the problem.
+            int n = GENERATE(take(1, random(50, 150)));
+            int incx = GENERATE(1, 4);
+            int incy = GENERATE(1, 7);
+            ScalarType factor = GENERATE(take(1, random(0.0, 1.5)));
+
+            // Build a test driver.
+            TesterType tester(n, incx, incy, factor, hipStream);
+            REQUIRE_NOTHROW(tester.Init());
+
+            // Do the operation.
+            REQUIRE_NOTHROW(tester.DoOperation());
+
+            // Verify the result.
+            ScalarType relErrTolerance = 0.0001;
+            tester.Check(relErrTolerance);
+        }
     }
 };
-
-
-// Single-precision operation.
-template<>
-hipblasStatus_t
-CopyTester<float>::CallCopy(hipblasHandle_t handle,
-                            int n,
-                            const float* x,
-                            int incx,
-                            float* y,
-                            int incy)
-{
-    return hipblasScopy(handle,
-            n,
-            x,
-            incx,
-            y,
-            incy);
-}
-
-
-// Double-precision operation.
-template<>
-hipblasStatus_t
-CopyTester<double>::CallCopy(hipblasHandle_t handle,
-                            int n,
-                            const double* x,
-                            int incx,
-                            double* y,
-                            int incy)
-{
-    return hipblasDcopy(handle,
-            n,
-            x,
-            incx,
-            y,
-            incy);
-}
-
-
-template<>
-void
-CopyTester<float>::TestSection(HipStream& hipStream)
-{
-    TestSectionAux("scopy", hipStream);
-}
-
-template<>
-void
-CopyTester<double>::TestSection(HipStream& hipStream)
-{
-    TestSectionAux("dcopy", hipStream);
-}
 
 } // namespace
 

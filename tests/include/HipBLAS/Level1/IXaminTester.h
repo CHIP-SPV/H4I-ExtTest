@@ -25,40 +25,26 @@ private:
     Vector<ScalarType> x;
     int result;
 
-    static hipblasStatus_t CallIXamin(hipblasHandle_t handle,
-                                int n,
-                                const ScalarType* x,
-                                int incx,
-                                int* result)
-    {
-        // This generic version should never be called.
-        // Specializations will be provided later.
-        assert(false);
-    }
+    // Disallow types for which we don't specialize.
+    template<typename T>
+    inline static const std::string opname;
 
-    static void TestSectionAux(std::string sectionName, HipStream& hipStream)
-    {
-        using TesterType = IXaminTester<ScalarType>;
+    template<typename T>
+    static auto ixamin(void) = delete;
 
-        SECTION(sectionName)
-        {
-            // Specify the problem.
-            int n = GENERATE(take(1, random(50, 150)));
-            int incx = GENERATE(1, 4);
+    // Specialize for float.
+    template<>
+    inline static const std::string opname<float> = "isamin";
 
-            // Build a test driver.
-            TesterType tester(n, incx, hipStream);
-            REQUIRE_NOTHROW(tester.Init());
+    template<>
+    static auto ixamin<float>(void) { return hipblasIsamin; }
 
-            // Do the operation.
-            REQUIRE_NOTHROW(tester.DoOperation());
+    // Specialize for double.
+    template<>
+    inline static const std::string opname<double> = "idamin";
 
-            // Verify the result.
-            // The result should be exact.
-            ScalarType relErrTolerance = 0.0;
-            tester.Check(relErrTolerance);
-        }
-    }
+    template<>
+    static auto ixamin<double>(void)    { return hipblasIdamin; }
 
 public:
     IXaminTester(int _n,
@@ -93,7 +79,8 @@ public:
 
     void DoOperation(void) override
     {
-        HBCHECK(CallIXamin(this->libContext.GetHandle(),
+        auto func = ixamin<ScalarType>();
+        HBCHECK(func(this->libContext.GetHandle(),
                             n,
                             x.GetDeviceData(),
                             x.GetIncrement(),
@@ -127,60 +114,29 @@ public:
     // Declare a Catch2 section for a test.
     static void TestSection(HipStream& hipStream)
     {
-        // This generic version should never be called.
-        // Specializations are provided later.
-        assert(false);
+        using TesterType = IXaminTester<ScalarType>;
+
+        SECTION(opname<ScalarType>)
+        {
+            // Specify the problem.
+            int n = GENERATE(take(1, random(50, 150)));
+            int incx = GENERATE(1, 4);
+
+            // Build a test driver.
+            TesterType tester(n, incx, hipStream);
+            REQUIRE_NOTHROW(tester.Init());
+
+            // Do the operation.
+            REQUIRE_NOTHROW(tester.DoOperation());
+
+            // Verify the result.
+            // The result should be exact.
+            ScalarType relErrTolerance = 0.0;
+            tester.Check(relErrTolerance);
+        }
     }
+
 };
-
-
-// Single-precision operation.
-template<>
-hipblasStatus_t
-IXaminTester<float>::CallIXamin(hipblasHandle_t handle,
-                            int n,
-                            const float* x,
-                            int incx,
-                            int* result)
-{
-    return hipblasIsamin(handle,
-            n,
-            x,
-            incx,
-            result);
-}
-
-
-// Double-precision operation.
-template<>
-hipblasStatus_t
-IXaminTester<double>::CallIXamin(hipblasHandle_t handle,
-                            int n,
-                            const double* x,
-                            int incx,
-                            int* result)
-{
-    return hipblasIdamin(handle,
-            n,
-            x,
-            incx,
-            result);
-}
-
-
-template<>
-void
-IXaminTester<float>::TestSection(HipStream& hipStream)
-{
-    TestSectionAux("isamin", hipStream);
-}
-
-template<>
-void
-IXaminTester<double>::TestSection(HipStream& hipStream)
-{
-    TestSectionAux("idamin", hipStream);
-}
 
 } // namespace
 

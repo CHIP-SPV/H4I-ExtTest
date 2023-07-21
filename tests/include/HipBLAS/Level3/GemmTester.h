@@ -49,54 +49,26 @@ private:
     ScalarType alpha;
     ScalarType beta;
 
+    // Disallow types for which we don't specialize.
+    template<typename T>
+    inline static const std::string opname;
 
-    hipblasStatus_t CallGemm(hipblasHandle_t handle,
-                                hipblasOperation_t transA,
-                                hipblasOperation_t transB,
-                                int m,
-                                int n,
-                                int k,
-                                const ScalarType* alpha,
-                                const ScalarType* A,
-                                int lda,
-                                const ScalarType* B,
-                                int ldb,
-                                const ScalarType* beta,
-                                ScalarType* C,
-                                int ldc)
-    {
-        // This generic version should never be called.
-        // Specializations for specific types are provided later.
-        assert(false);
-    }
+    template<typename T>
+    static auto gemm(void) = delete;
 
-    static void TestSectionAux(std::string sectionName, HipStream& hipStream)
-    {
-        using TesterType = GemmTester<ScalarType>;
+    // Specialize for float.
+    template<>
+    inline static const std::string opname<float> = "sgemm";
 
-        SECTION(sectionName)
-        {
-            // Specify the problem.
-            auto transA = GENERATE(false, true);
-            auto transB = GENERATE(false, true);
-            int m = GENERATE(take(1, random(50, 150)));
-            int n = GENERATE(take(1, random(50, 150)));
-            int k = GENERATE(take(1, random(50, 150)));
-            ScalarType alpha = GENERATE(take(1, random(-1.0, 1.0)));
-            ScalarType beta = GENERATE(take(1, random(-2.5, 2.5)));
+    template<>
+    static auto gemm<float>(void)  { return hipblasSgemm; }
 
-            // Build a test driver.
-            TesterType tester(transA, transB, m, n, k, alpha, beta, hipStream);
-            REQUIRE_NOTHROW(tester.Init());
+    // Specialize for double.
+    template<>
+    inline static const std::string opname<double> = "dgemm";
 
-            // Do the operation.
-            REQUIRE_NOTHROW(tester.DoOperation());
-
-            // Verify the result.
-            ScalarType relErrTolerance = 0.0001;
-            tester.Check(relErrTolerance);
-        }
-    }
+    template<>
+    static auto gemm<double>(void)  { return hipblasDgemm; }
 
 public:
     GemmTester(bool _transA,
@@ -166,7 +138,8 @@ public:
 
         // This assumes column major ordering (the use of nRows for leading dimension).
         // Use of nRows as lda, ldb does not differ depending on whether A, B are transposed.
-        HBCHECK(CallGemm(this->libContext.GetHandle(),
+        auto func = gemm<ScalarType>();
+        HBCHECK(func(this->libContext.GetHandle(),
                             !transA ? HIPBLAS_OP_N : HIPBLAS_OP_T,
                             !transB ? HIPBLAS_OP_N : HIPBLAS_OP_T,
                             m,
@@ -209,96 +182,33 @@ public:
     // Declare a Catch2 section for a GEMM test.
     static void TestSection(HipStream& hipStream)
     {
-        // Generic version should never be called.
-        // Specializations provided later.
-        assert(false);
+        using TesterType = GemmTester<ScalarType>;
+
+        SECTION(opname<ScalarType>)
+        {
+            // Specify the problem.
+            auto transA = GENERATE(false, true);
+            auto transB = GENERATE(false, true);
+            int m = GENERATE(take(1, random(50, 150)));
+            int n = GENERATE(take(1, random(50, 150)));
+            int k = GENERATE(take(1, random(50, 150)));
+            ScalarType alpha = GENERATE(take(1, random(-1.0, 1.0)));
+            ScalarType beta = GENERATE(take(1, random(-2.5, 2.5)));
+
+            // Build a test driver.
+            TesterType tester(transA, transB, m, n, k, alpha, beta, hipStream);
+            REQUIRE_NOTHROW(tester.Init());
+
+            // Do the operation.
+            REQUIRE_NOTHROW(tester.DoOperation());
+
+            // Verify the result.
+            ScalarType relErrTolerance = 0.0001;
+            tester.Check(relErrTolerance);
+        }
     }
+
 };
-
-
-// Single-precision GEMM.
-template<>
-hipblasStatus_t
-GemmTester<float>::CallGemm(hipblasHandle_t handle,
-                            hipblasOperation_t transA,
-                            hipblasOperation_t transB,
-                            int m,
-                            int n,
-                            int k,
-                            const float* alpha,
-                            const float* A,
-                            int lda,
-                            const float* B,
-                            int ldb,
-                            const float* beta,
-                            float* C,
-                            int ldc)
-{
-    return hipblasSgemm(handle,
-            transA,
-            transB,
-            m,
-            n,
-            k,
-            alpha,
-            A,
-            lda,
-            B,
-            ldb,
-            beta,
-            C,
-            ldc);
-}
-
-
-// Double-precision GEMM.
-template<>
-hipblasStatus_t
-GemmTester<double>::CallGemm(hipblasHandle_t handle,
-                            hipblasOperation_t transA,
-                            hipblasOperation_t transB,
-                            int m,
-                            int n,
-                            int k,
-                            const double* alpha,
-                            const double* A,
-                            int lda,
-                            const double* B,
-                            int ldb,
-                            const double* beta,
-                            double* C,
-                            int ldc)
-{
-    return hipblasDgemm(handle,
-            transA,
-            transB,
-            m,
-            n,
-            k,
-            alpha,
-            A,
-            lda,
-            B,
-            ldb,
-            beta,
-            C,
-            ldc);
-}
-
-
-template<>
-void
-GemmTester<float>::TestSection(HipStream& hipStream)
-{
-    TestSectionAux("sgemm", hipStream);
-}
-
-template<>
-void
-GemmTester<double>::TestSection(HipStream& hipStream)
-{
-    TestSectionAux("dgemm", hipStream);
-}
 
 } // namespace
 

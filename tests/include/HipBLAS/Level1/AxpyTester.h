@@ -30,43 +30,26 @@ private:
     Vector<ScalarType> x;
     Vector<ScalarType> y;
 
-    static hipblasStatus_t CallAxpy(hipblasHandle_t handle,
-                                int n,
-                                const ScalarType* alpha,
-                                const ScalarType* x,
-                                int incx,
-                                ScalarType* y,
-                                int incy)
-    {
-        // This generic version should never be called.
-        // Specializations will be provided later.
-        assert(false);
-    }
+    // Disallow types for which we don't specialize.
+    template<typename T>
+    inline static const std::string opname;
 
-    static void TestSectionAux(std::string sectionName, HipStream& hipStream)
-    {
-        using TesterType = AxpyTester<ScalarType>;
+    template<typename T>
+    static auto axpy(void) = delete;
 
-        SECTION(sectionName)
-        {
-            // Specify the problem.
-            int n = GENERATE(take(1, random(50, 150)));
-            ScalarType alpha = GENERATE(take(1, random(-2.5, 2.5)));
-            int incx = GENERATE(1, 4);
-            int incy = GENERATE(1, 7);
+    // Specializations for float.
+    template<>
+    inline static const std::string opname<float> = "saxpy";
 
-            // Build a test driver.
-            TesterType tester(n, alpha, incx, incy, hipStream);
-            REQUIRE_NOTHROW(tester.Init());
+    template<>
+    static auto axpy<float>(void) { return hipblasSaxpy; }
 
-            // Do the operation.
-            REQUIRE_NOTHROW(tester.DoOperation());
+    // Specializations for double.
+    template<>
+    inline static const std::string opname<double> = "daxpy";
 
-            // Verify the result.
-            ScalarType relErrTolerance = 0.0001;
-            tester.Check(relErrTolerance);
-        }
-    }
+    template<>
+    static auto axpy<double>(void) { return hipblasDaxpy; }
 
 public:
     AxpyTester(int _n,
@@ -120,7 +103,8 @@ public:
         }
 #endif // READY
 
-        HBCHECK(CallAxpy(this->libContext.GetHandle(),
+        auto func = axpy<ScalarType>();
+        HBCHECK(func(this->libContext.GetHandle(),
                             n,
                             alpha.GetDeviceData(),
                             x.GetDeviceData(),
@@ -146,68 +130,29 @@ public:
     // Declare a Catch2 section for a test.
     static void TestSection(HipStream& hipStream)
     {
-        // This generic version should never be called.
-        // Specializations are provided later.
-        assert(false);
+        using TesterType = AxpyTester<ScalarType>;
+
+        SECTION(opname<ScalarType>)
+        {
+            // Specify the problem.
+            int n = GENERATE(take(1, random(50, 150)));
+            ScalarType alpha = GENERATE(take(1, random(-2.5, 2.5)));
+            int incx = GENERATE(1, 4);
+            int incy = GENERATE(1, 7);
+
+            // Build a test driver.
+            TesterType tester(n, alpha, incx, incy, hipStream);
+            REQUIRE_NOTHROW(tester.Init());
+
+            // Do the operation.
+            REQUIRE_NOTHROW(tester.DoOperation());
+
+            // Verify the result.
+            ScalarType relErrTolerance = 0.0001;
+            tester.Check(relErrTolerance);
+        }
     }
 };
-
-
-// Single-precision operation.
-template<>
-hipblasStatus_t
-AxpyTester<float>::CallAxpy(hipblasHandle_t handle,
-                            int n,
-                            const float* alpha,
-                            const float* x,
-                            int incx,
-                            float* y,
-                            int incy)
-{
-    return hipblasSaxpy(handle,
-            n,
-            alpha,
-            x,
-            incx,
-            y,
-            incy);
-}
-
-
-// Double-precision operation.
-template<>
-hipblasStatus_t
-AxpyTester<double>::CallAxpy(hipblasHandle_t handle,
-                            int n,
-                            const double* alpha,
-                            const double* x,
-                            int incx,
-                            double* y,
-                            int incy)
-{
-    return hipblasDaxpy(handle,
-            n,
-            alpha,
-            x,
-            incx,
-            y,
-            incy);
-}
-
-
-template<>
-void
-AxpyTester<float>::TestSection(HipStream& hipStream)
-{
-    TestSectionAux("saxpy", hipStream);
-}
-
-template<>
-void
-AxpyTester<double>::TestSection(HipStream& hipStream)
-{
-    TestSectionAux("daxpy", hipStream);
-}
 
 } // namespace
 

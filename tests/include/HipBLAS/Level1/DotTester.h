@@ -33,42 +33,26 @@ private:
     Vector<ScalarType> y;
     Scalar<ScalarType> result;
 
-    static hipblasStatus_t CallDot(hipblasHandle_t handle,
-                                int n,
-                                const ScalarType* x,
-                                int incx,
-                                const ScalarType* y,
-                                int incy,
-                                ScalarType* result)
-    {
-        // This generic version should never be called.
-        // Specializations will be provided later.
-        assert(false);
-    }
+    // Disallow types for which we don't specialize.
+    template<typename T>
+    inline static const std::string opname;
 
-    static void TestSectionAux(std::string sectionName, HipStream& hipStream)
-    {
-        using TesterType = DotTester<ScalarType>;
+    template<typename T>
+    static auto dot(void) = delete;
 
-        SECTION(sectionName)
-        {
-            // Specify the problem.
-            int n = GENERATE(take(1, random(50, 150)));
-            int incx = GENERATE(1, 4);
-            int incy = GENERATE(1, 7);
+    // Specialize for float.
+    template<>
+    inline static const std::string opname<float> = "sdot";
 
-            // Build a test driver.
-            TesterType tester(n, incx, incy, hipStream);
-            REQUIRE_NOTHROW(tester.Init());
+    template<>
+    static auto dot<float>(void)    { return hipblasSdot; }
 
-            // Do the operation.
-            REQUIRE_NOTHROW(tester.DoOperation());
+    // Specialize for double.
+    template<>
+    inline static const std::string opname<double> = "ddot";
 
-            // Verify the result.
-            ScalarType relErrTolerance = 0.0001;
-            tester.Check(relErrTolerance);
-        }
-    }
+    template<>
+    static auto dot<double>(void)    { return hipblasDdot; }
 
 public:
     DotTester(int _n,
@@ -120,7 +104,8 @@ public:
         }
 #endif // READY
 
-        HBCHECK(CallDot(this->libContext.GetHandle(),
+        auto func = dot<ScalarType>();
+        HBCHECK(func(this->libContext.GetHandle(),
                             n,
                             x.GetDeviceData(),
                             x.GetIncrement(),
@@ -142,68 +127,29 @@ public:
     // Declare a Catch2 section for a test.
     static void TestSection(HipStream& hipStream)
     {
-        // This generic version should never be called.
-        // Specializations are provided later.
-        assert(false);
+        using TesterType = DotTester<ScalarType>;
+
+        SECTION(opname<ScalarType>)
+        {
+            // Specify the problem.
+            int n = GENERATE(take(1, random(50, 150)));
+            int incx = GENERATE(1, 4);
+            int incy = GENERATE(1, 7);
+
+            // Build a test driver.
+            TesterType tester(n, incx, incy, hipStream);
+            REQUIRE_NOTHROW(tester.Init());
+
+            // Do the operation.
+            REQUIRE_NOTHROW(tester.DoOperation());
+
+            // Verify the result.
+            ScalarType relErrTolerance = 0.0001;
+            tester.Check(relErrTolerance);
+        }
     }
+
 };
-
-
-// Single-precision operation.
-template<>
-hipblasStatus_t
-DotTester<float>::CallDot(hipblasHandle_t handle,
-                            int n,
-                            const float* x,
-                            int incx,
-                            const float* y,
-                            int incy,
-                            float* result)
-{
-    return hipblasSdot(handle,
-            n,
-            x,
-            incx,
-            y,
-            incy,
-            result);
-}
-
-
-// Double-precision operation.
-template<>
-hipblasStatus_t
-DotTester<double>::CallDot(hipblasHandle_t handle,
-                            int n,
-                            const double* x,
-                            int incx,
-                            const double* y,
-                            int incy,
-                            double* result)
-{
-    return hipblasDdot(handle,
-            n,
-            x,
-            incx,
-            y,
-            incy,
-            result);
-}
-
-
-template<>
-void
-DotTester<float>::TestSection(HipStream& hipStream)
-{
-    TestSectionAux("sdot", hipStream);
-}
-
-template<>
-void
-DotTester<double>::TestSection(HipStream& hipStream)
-{
-    TestSectionAux("ddot", hipStream);
-}
 
 } // namespace
 

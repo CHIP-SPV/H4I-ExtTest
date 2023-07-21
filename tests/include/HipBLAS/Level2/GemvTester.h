@@ -46,52 +46,26 @@ private:
     ScalarType alpha;
     ScalarType beta;
 
-    hipblasStatus_t CallGemv(hipblasHandle_t handle,
-                                hipblasOperation_t trans,
-                                int m,
-                                int n,
-                                const ScalarType* alpha,
-                                const ScalarType* A,
-                                int lda,
-                                const ScalarType* x,
-                                int incx,
-                                const ScalarType* beta,
-                                ScalarType* y,
-                                int incy)
-    {
-        // Generic version should never be called.
-        // Specializations provided later.
-        assert(false);
-    }
+    // Disallow types for which we don't specialize.
+    template<typename T>
+    inline static std::string opname;
 
-    static void TestSectionAux(std::string sectionName, HipStream& hipStream)
-    {
-        using TesterType = GemvTester<ScalarType>;
+    template<typename T>
+    static auto gemv(void) = delete;
 
-        SECTION(sectionName)
-        {
-            // Specify the problem.
-            // A: m x n
-            int m = GENERATE(take(1, random(50, 150)));
-            int n = GENERATE(take(1, random(50, 150)));
-            int incx = GENERATE(1, 4);
-            int incy = GENERATE(1, 7);
-            ScalarType alpha = GENERATE(take(1, random(-1.0, 1.0)));
-            ScalarType beta = GENERATE(take(1, random(-2.5, 2.5)));
-            auto transA = GENERATE(false, true);
+    // Specialize for float.
+    template<>
+    inline static const std::string opname<float> = "sgemv";
 
-            // Build a test driver.
-            TesterType tester(transA, m, n, alpha, incx, beta, incy, hipStream);
-            REQUIRE_NOTHROW(tester.Init());
+    template<>
+    static auto gemv<float>(void)   { return hipblasSgemv; }
 
-            // Do the operation.
-            REQUIRE_NOTHROW(tester.DoOperation());
+    // Specialize for double.
+    template<>
+    inline static const std::string opname<double> = "dgemv";
 
-            // Verify the result.
-            ScalarType relErrTolerance = 0.0001;
-            tester.Check(relErrTolerance);
-        }
-    }
+    template<>
+    static auto gemv<double>(void)   { return hipblasDgemv; }
 
 public:
     GemvTester(bool _transA,
@@ -156,7 +130,8 @@ public:
 #endif // READY
 
         // This assumes column major ordering of A (the use of nRows for leading dimension).
-        HBCHECK(CallGemv(this->libContext.GetHandle(),
+        auto func = gemv<ScalarType>();
+        HBCHECK(func(this->libContext.GetHandle(),
                             transA ? HIPBLAS_OP_T : HIPBLAS_OP_N,
                             A.GetNumRows(),
                             A.GetNumCols(),
@@ -193,88 +168,34 @@ public:
     // Declare a Catch2 section for a test.
     static void TestSection(HipStream& hipStream)
     {
-        // Generic version should never be called.
-        // Specializations provided later.
-        assert(false);
+        using TesterType = GemvTester<ScalarType>;
+
+        SECTION(opname<ScalarType>)
+        {
+            // Specify the problem.
+            // A: m x n
+            int m = GENERATE(take(1, random(50, 150)));
+            int n = GENERATE(take(1, random(50, 150)));
+            int incx = GENERATE(1, 4);
+            int incy = GENERATE(1, 7);
+            ScalarType alpha = GENERATE(take(1, random(-1.0, 1.0)));
+            ScalarType beta = GENERATE(take(1, random(-2.5, 2.5)));
+            auto transA = GENERATE(false, true);
+
+            // Build a test driver.
+            TesterType tester(transA, m, n, alpha, incx, beta, incy, hipStream);
+            REQUIRE_NOTHROW(tester.Init());
+
+            // Do the operation.
+            REQUIRE_NOTHROW(tester.DoOperation());
+
+            // Verify the result.
+            ScalarType relErrTolerance = 0.0001;
+            tester.Check(relErrTolerance);
+        }
     }
+
 };
-
-
-// Single-precision operation.
-template<>
-hipblasStatus_t
-GemvTester<float>::CallGemv(hipblasHandle_t handle,
-                            hipblasOperation_t trans,
-                            int m,
-                            int n,
-                            const float* alpha,
-                            const float* A,
-                            int lda,
-                            const float* x,
-                            int incx,
-                            const float* beta,
-                            float* y,
-                            int incy)
-{
-    return hipblasSgemv(handle,
-            trans,
-            m,
-            n,
-            alpha,
-            A,
-            lda,
-            x,
-            incx,
-            beta,
-            y,
-            incy);
-}
-
-
-// Double-precision operation.
-template<>
-hipblasStatus_t
-GemvTester<double>::CallGemv(hipblasHandle_t handle,
-                            hipblasOperation_t trans,
-                            int m,
-                            int n,
-                            const double* alpha,
-                            const double* A,
-                            int lda,
-                            const double* x,
-                            int incx,
-                            const double* beta,
-                            double* y,
-                            int incy)
-{
-    return hipblasDgemv(handle,
-            trans,
-            m,
-            n,
-            alpha,
-            A,
-            lda,
-            x,
-            incx,
-            beta,
-            y,
-            incy);
-}
-
-
-template<>
-void
-GemvTester<float>::TestSection(HipStream& hipStream)
-{
-    TestSectionAux("sgemv", hipStream);
-}
-
-template<>
-void
-GemvTester<double>::TestSection(HipStream& hipStream)
-{
-    TestSectionAux("dgemv", hipStream);
-}
 
 } // namespace
 
