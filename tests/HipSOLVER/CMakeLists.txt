@@ -9,7 +9,7 @@ function(define_hipsolver_executable TARGET_NAME TARGET_SOURCES)
             ExtTestConfig
         PUBLIC
             ${HIPSOLVER_LIBS}
-            Catch2::Catch2WithMain)
+            ExtTestCatch2Main)
 
     if(BUILD_TESTING)
         # Register supported tests with CTest.

@@ -5,6 +5,15 @@ configure_file(
     ${CMAKE_SOURCE_DIR}/tests/include/ExtTestConfig.h.in
     ${CMAKE_BINARY_DIR}/tests/include/ExtTestConfig.h)
 
+# Specify how to build our Catch2-based custom main function.
+add_library(ExtTestCatch2Main Catch2Main.cpp)
+target_link_libraries(ExtTestCatch2Main
+    PRIVATE
+        ExtTestConfig
+    PUBLIC
+        Catch2::Catch2)
+
+
 # Check if we have a hipBLAS implementation.
 find_package(hipblas)
 if(hipblas_FOUND)

@@ -4,6 +4,7 @@
 
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
+#include "Catch2Session.h"
 #include "HipBLAS/HipblasTester.h"
 #include "Matrix.h"
 #include "Vector.h"
@@ -150,7 +151,7 @@ public:
         this->hipStream.Synchronize();
     }
 
-    void Check(ScalarType relErrTolerance) const override
+    void Check(void) const override
     {
         auto xlen = transA ? A.GetNumRows() : A.GetNumCols();
         auto ylen = transA ? A.GetNumCols() : A.GetNumRows();
@@ -161,7 +162,7 @@ public:
         for(auto i = 0; i < ylen; ++i)
         {
             ScalarType expVal = alpha*(xlen*(xlen-1))/2.0 + 2*beta*i;
-            REQUIRE_THAT(y.El(i), Catch::Matchers::WithinRel(expVal, relErrTolerance));
+            REQUIRE_THAT(y.El(i), Catch::Matchers::WithinRel(expVal, Catch2Session::theSession->GetRelErrThreshold<ScalarType>()));
         }
     }
 
@@ -190,8 +191,7 @@ public:
             REQUIRE_NOTHROW(tester.DoOperation());
 
             // Verify the result.
-            ScalarType relErrTolerance = 0.0001;
-            tester.Check(relErrTolerance);
+            tester.Check();
         }
     }
 

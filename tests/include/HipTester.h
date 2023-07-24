@@ -25,6 +25,6 @@ public:
 
     virtual void DoOperation(void) = 0;
 
-    virtual void Check(ScalarType relErrTolerance) const = 0;
+    virtual void Check(void) const = 0;
 };
 

@@ -4,6 +4,7 @@
 
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
+#include "Catch2Session.h"
 #include "HipBLAS/HipblasTester.h"
 #include "Vector.h"
 
@@ -89,7 +90,7 @@ public:
         this->hipStream.Synchronize();
     }
 
-    void Check([[maybe_unused]] ScalarType relErrTolerance) const override
+    void Check(void) const override
     {
         // Find the index of the min absolute value in x on the CPU.
         int minValueIdx = 0;
@@ -130,9 +131,7 @@ public:
             REQUIRE_NOTHROW(tester.DoOperation());
 
             // Verify the result.
-            // The result should be exact.
-            ScalarType relErrTolerance = 0.0;
-            tester.Check(relErrTolerance);
+            tester.Check();
         }
     }
 
