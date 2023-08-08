@@ -160,8 +160,21 @@ public:
                             &niters,
                             devInfo.GetDeviceData()));
 
-        // Copy the result back to host memory.
-        X.CopyDeviceToHostAsync(this->hipStream);
+        // Check whether the operation succeeded.
+        devInfo.CopyDeviceToHost();
+
+        if(devInfo.El() == 0)
+        {
+            // The operation succeeded.
+
+            // Copy the result and pivot vector back to host memory.
+            X.CopyDeviceToHostAsync(this->hipStream);
+            devIpiv.CopyDeviceToHostAsync(this->hipStream);
+        }
+        else
+        {
+            // TODO how do we indicate that the operation failed?
+        }
 
         this->hipStream.Synchronize();
     }
@@ -170,7 +183,7 @@ public:
     {
         // Multiply A and X.
         // We do this "by hand" on the CPU to avoid the dependence
-        // on hipBLAS GEMV or GEMM.
+        // on another BLAS library's GEMM.
         Matrix<ScalarType> AX(n, nrhs);
         for(auto r = 0; r < n; ++r)
         {
