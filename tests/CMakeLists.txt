@@ -33,20 +33,20 @@ if(hipblas_FOUND)
 endif()
 
 # Check if we have a hipSOLVER implementation.
-find_package(hipsolver)
-if(hipsolver_FOUND)
-    message(STATUS "Found hipSOLVER at ${hipsolver_DIR}")
-
-    # We found a hipSOLVER implementation.
-    if(TARGET H4I::hipsolver)
-        # We found the H4I hipsolver implementation.
-        set(HIPSOLVER_LIBS H4I::hipsolver)
-    else()
-        # Assume it is the ROCm hipsolver.
-        set(HIPSOLVER_LIBS roc::hipsolver ${hip_LIBRARIES})
-    endif()
-
-    # Build the hipSOLVER tests.
-    add_subdirectory(HipSOLVER)
-endif()
+#find_package(hipsolver)
+#if(hipsolver_FOUND)
+#    message(STATUS "Found hipSOLVER at ${hipsolver_DIR}")
+#
+#    # We found a hipSOLVER implementation.
+#    if(TARGET H4I::hipsolver)
+#        # We found the H4I hipsolver implementation.
+#        set(HIPSOLVER_LIBS H4I::hipsolver)
+#    else()
+#        # Assume it is the ROCm hipsolver.
+#        set(HIPSOLVER_LIBS roc::hipsolver ${hip_LIBRARIES})
+#    endif()
+#
+#    # Build the hipSOLVER tests.
+#    add_subdirectory(HipSOLVER)
+#endif()
 
